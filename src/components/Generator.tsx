@@ -14,7 +14,7 @@ type Photo = { file: File; previewUrl: string; uploadId: string | null }
 const POLL_MS = 3000
 
 // styleId / onStyleChange：首页把风格状态提到外面，让 hero 标签和生成器同步；不传时生成器自己管
-export function Generator({ styleId: controlledStyleId, onStyleChange }: { styleId?: string; onStyleChange?: (id: string) => void } = {}) {
+export function Generator({ styleId: controlledStyleId, onStyleChange, showStyleSelector = true }: { styleId?: string; onStyleChange?: (id: string) => void; showStyleSelector?: boolean } = {}) {
   const c = useContent()
   const g = c.generator
   const lp = useLocalePath()
@@ -185,7 +185,7 @@ export function Generator({ styleId: controlledStyleId, onStyleChange }: { style
       </section>
 
       {/* 2. 风格：只有一种风格时不显示 */}
-      {STYLES.length > 1 ? (
+      {showStyleSelector && STYLES.length > 1 ? (
         <section className="space-y-3">
           <StepTitle n={2}>{g.stepStyle}</StepTitle>
           <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={g.stepStyle}>
@@ -218,7 +218,7 @@ export function Generator({ styleId: controlledStyleId, onStyleChange }: { style
 
       {/* 时长 */}
       <section className="space-y-3">
-        <StepTitle n={STYLES.length > 1 ? 3 : 2}>{g.stepLength}</StepTitle>
+        <StepTitle n={showStyleSelector && STYLES.length > 1 ? 3 : 2}>{g.stepLength}</StepTitle>
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-bg-soft p-1" role="radiogroup" aria-label={g.stepLength}>
           {site.durations.map((d) => {
             const active = d.id === durationId

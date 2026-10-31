@@ -1,4 +1,4 @@
-import { useNavigate, useRouterState } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { ChevronDown, Languages, LogOut, Menu, Moon, Sun, X } from 'lucide-react'
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { LOCALE_META, LOCALES } from '#/config/site'
@@ -9,16 +9,19 @@ import { LocalLink, Logo } from './ui'
 export function Nav() {
   const c = useContent()
   const lp = useLocalePath()
+  const { user } = useSession()
   const [open, setOpen] = useState(false)
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   useEffect(() => setOpen(false), [pathname])
 
   const links = [
-    { href: `${lp('/')}#features`, label: c.nav.features },
-    { href: `${lp('/')}#examples`, label: c.nav.examples },
-    { href: lp('/guides'), label: c.guides.nav },
+    { href: lp('/'), label: c.publicLayout.create },
+    { href: lp('/guides'), label: c.publicLayout.guide },
     { href: lp('/pricing'), label: c.nav.pricing },
+    ...(user ? [{ href: lp('/dashboard'), label: c.publicLayout.account }] : []),
   ]
+  const publicView = [lp('/'), lp('/guides'), lp('/pricing')].includes(pathname)
+  const activeLink = (href: string) => pathname === href || (href === lp('/dashboard') && pathname.startsWith(href + '/'))
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur">
@@ -26,14 +29,13 @@ export function Nav() {
         <Logo />
         <div className="hidden items-center gap-10 md:flex">
           {links.map((link) => (
-            <a key={link.href} href={link.href} className="eyebrow text-fg/80 hover:text-fg">
+            <Link key={link.href} to={link.href} className="site-nav-link" aria-current={activeLink(link.href) ? 'page' : undefined}>
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
         <div className="flex items-center gap-1.5">
-          <LanguageSwitcher />
-          <ThemeToggle />
+          {!publicView ? <ThemeToggle /> : null}
           <div className="hidden md:block">
             <AccountButton />
           </div>
@@ -52,9 +54,9 @@ export function Nav() {
         <div className="border-t border-line bg-bg md:hidden">
           <div className="container-page flex flex-col gap-4 py-5">
             {links.map((link) => (
-              <a key={link.href} href={link.href} className="eyebrow" onClick={() => setOpen(false)}>
+              <Link key={link.href} to={link.href} className="site-nav-link" aria-current={activeLink(link.href) ? 'page' : undefined} onClick={() => setOpen(false)}>
                 {link.label}
-              </a>
+              </Link>
             ))}
             <AccountButton />
           </div>

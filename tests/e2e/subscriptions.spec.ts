@@ -1,5 +1,9 @@
+import { site } from '../../src/config/site'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { buyPackage, credits, devLogin, json, ledger, ORIGIN, pkg, plan, post, uniqueEmail, yearlySavingPercent } from './helpers'
+import { buyPackage, credits, devLogin, json, ledger, ORIGIN, pkg, plan, post, uniqueEmail } from './helpers'
+
+// 保留模板的订阅回归，当前积分包站点不再创建新订阅。
+test.skip(!site.subscriptionsEnabled, '本站仅销售积分包，订阅回归在启用订阅的模板配置下运行')
 
 const MONTHLY = plan('monthly').credits
 const YEARLY = plan('yearly').credits
@@ -23,17 +27,16 @@ async function shot(page: Page, name: string) {
   await test.info().attach(name, { body, contentType: 'image/png' })
 }
 
-test('月付：定价页订阅、积分当月作废、续费新建订单、扣款失败与恢复、到期取消与撤销、终止后可重新订阅', async ({ page }) => {
+test('月付：保留接口订阅、积分当月作废、续费新建订单、扣款失败与恢复、到期取消与撤销、终止后可重新订阅', async ({ page }) => {
   const request = page.request
   await devLogin(request, uniqueEmail('sub-monthly'))
   await page.goto('/pricing')
-  // 年付折扣：与定价页同一公式；没有可比的月付（积分不同）时不显示
-  const saving = yearlySavingPercent(plan('yearly'))
-  if (saving) await expect(page.getByTestId('plan-yearly')).toContainText(`Save ${saving}%`)
-  else await expect(page.getByTestId('plan-yearly')).not.toContainText(/Save \d+%/)
-  await expect(page.getByTestId('buy-yearly')).toBeEnabled()
-  await shot(page, 'pricing')
-  await page.getByTestId('buy-monthly').click()
+  // 新布局不显示订阅销售入口，但现有订阅接口及后续管理仍需回归。
+  await expect(page.getByTestId('buy-yearly')).toHaveCount(0)
+  await expect(page.getByTestId('buy-monthly')).toHaveCount(0)
+  await expect(page.getByTestId('buy-starter')).toBeVisible()
+  const { url } = await json<{ url: string }>(checkout(request, 'monthly'))
+  await page.goto(url)
   await page.getByTestId('mock-pay').click()
   await expect(page.getByTestId('checkout-result')).toHaveAttribute('data-status', 'paid')
   expect(await credits(request)).toBe(MONTHLY)

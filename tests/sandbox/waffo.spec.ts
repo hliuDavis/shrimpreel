@@ -96,6 +96,7 @@ test.describe.serial('Waffo sandbox', () => {
   })
 
   test('订阅：月付走真实收银台，webhook 激活订阅并发当月积分；门户地址可打开，取消续费后 Waffo 回 canceling', async ({ page }) => {
+    test.skip(!site.subscriptionsEnabled, '本站不销售订阅')
     test.skip(!WEBHOOK, '订阅状态靠 webhook 同步，需要 SANDBOX_WEBHOOK=1')
     await devLogin(page.request, uniqueEmail('sandbox-waffo-sub'))
     const before = await credits(page.request)

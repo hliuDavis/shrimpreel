@@ -80,6 +80,7 @@ test('开发与 mock 入口全部关闭：同源 POST 也是 404，页面也打�
   expect(config.devLogin, 'APP_ENV 不是 production/staging，不再发送开发接口请求').toBe(false)
   const devPosts = [
     '/api/auth/dev-login',
+    '/api/auth/google/one-tap',
     '/api/mock-payments/complete',
     '/api/mock-payments/subscription',
     '/api/dev/subscription-grants',

@@ -17,7 +17,16 @@ export const site = {
   brandName: 'Neon Shuffle AI',
   logoMark: 'NS',
   domain: 'example.com',
-  supportEmail: 'support@example.com',
+  supportEmail: '', // TODO(site): 上线前自行填写实际接收客服请求的业务邮箱，无需在聊天中提供。
+  // 法律页公开信息：可以自行在本机填写，不必提供给助手；留空时页面标明草稿。
+  // TODO(site): 上线前复核非必要归因 Cookie 的同意机制，以及报告处理值守和服务商数据条款。
+  legal: {
+    updatedAt: '2026-10-31',
+    operatorName: '', // TODO(site): 填写依法应披露的经营主体名称；不要用品牌名冒充主体。
+    country: '', // TODO(site): 自行填写经营主体所在国家或地区。
+    contactAddress: '', // TODO(site): 按适用要求填写合法的业务联系地址；不预填住宅地址。
+    providerDetails: '', // TODO(site): 核对 Cloudflare、Google、Waffo、yir 及实际路由供应商的角色、地区、保留和跨境安排。
+  },
   // 社媒平台名称（用于 “Viral on TikTok” 之类标签）
   trendPlatform: 'TikTok',
   ogImage: '/og.png',
@@ -125,7 +134,7 @@ export const site = {
   // 开关 subscriptionsEnabled：false 时不再卖新订阅（定价页、条款、退款政策和 FAQ 里的订阅内容一起隐藏，下单接口拒绝套餐），
   // 已有订阅照常续费、退款，账单页仍能取消和进门户；这时要保留 *_PRODUCTS 里套餐的商品，支付商 webhook 也别退订订阅事件。
   // 使用手册见 docs/subscriptions.md
-  subscriptionsEnabled: true as boolean,
+  subscriptionsEnabled: false as boolean,
   plans: [
     { id: 'monthly', interval: 'month', credits: 60, priceCents: 1490, currency: 'USD' },
     { id: 'yearly', interval: 'year', credits: 60, priceCents: 14900, currency: 'USD', highlight: true },

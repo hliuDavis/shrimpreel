@@ -119,7 +119,7 @@ seoRoutes.get('/llms.txt', async (c) => {
     link(en.legal.terms.title, '/terms-of-service'),
     link(en.legal.privacy.title, '/privacy-policy'),
     link(en.legal.refund.title, '/refund-policy'),
-    `- Contact: ${site.supportEmail}`,
+    link(en.contact.title, '/contact'),
   ]
   return c.body(`${lines.join('\n')}\n`, 200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
 })

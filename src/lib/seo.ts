@@ -18,7 +18,7 @@ function organization() {
     name: site.brandName,
     url: absoluteUrl('/'),
     logo: absoluteUrl('/favicon.svg'),
-    email: site.supportEmail,
+    ...(site.supportEmail ? { email: site.supportEmail } : {}),
     ...(site.seo.sameAs.length ? { sameAs: site.seo.sameAs } : {}),
   }
 }

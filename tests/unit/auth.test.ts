@@ -1,3 +1,4 @@
+import { adultDeclaration } from '#/server/adult-declaration'
 import { DatabaseSync } from 'node:sqlite'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { deletedEmailHash, upsertUser, type SignInProfile } from '#/server/auth'
@@ -22,6 +23,7 @@ describe('upsertUser：账号以 Google sub 为准', () => {
 
   const profile = (email: string, googleSub: string | null, extra: Partial<SignInProfile> = {}): SignInProfile => ({
     email,
+    adultDeclaration: adultDeclaration(true),
     name: null,
     picture: null,
     googleSub,

@@ -1,4 +1,6 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { DatabaseSync } from 'node:sqlite'
+import { d1Shim, kvShim, migrate } from './d1-sqlite'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { app } from '#/server/app'
 import { exchangeGoogleCode, googleAuthRedirect, verifyGoogleIdToken } from '#/server/google'
 import { ApiError, base64Url } from '#/server/util'
@@ -6,6 +8,13 @@ import { ApiError, base64Url } from '#/server/util'
 const CLIENT_ID = 'client-id'
 const config = { clientId: CLIENT_ID, clientSecret: 'client-secret', redirectUri: 'https://site.example/api/auth/google/callback' }
 const env = { APP_ENV: 'development', SITE_URL: 'https://site.example', GOOGLE_CLIENT_ID: CLIENT_ID, GOOGLE_CLIENT_SECRET: 'client-secret' } as unknown as Env
+
+let db: DatabaseSync
+beforeEach(() => {
+  db = new DatabaseSync(':memory:')
+  migrate(db)
+  Object.assign(env, { DB: d1Shim(db), KV: kvShim(), ADMIN_EMAILS: '', SESSION_SECRET: 'test-secret-long-enough-for-adult-flow-tests' })
+})
 
 let keys: CryptoKeyPair
 let jwk: JsonWebKey
@@ -21,6 +30,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  db.close()
 })
 
 const encode = (value: unknown) => base64Url(new TextEncoder().encode(JSON.stringify(value)))
@@ -87,52 +97,46 @@ describe('Google 授权码流程：PKCE 与 nonce', () => {
     expect((await verifyGoogleIdToken(await idToken({ nonce: 'n-1' }), CLIENT_ID, 'n-1')).email).toBe('a@example.com')
   })
 
-  it('start 把 state、verifier、nonce 和回跳地址存进 cookie；回跳地址含 | 也能原样取回', async () => {
-    const res = await app.request(`/api/auth/google/start?redirect=${encodeURIComponent('/pricing?a=1|2')}`, {}, env)
-    const cookie = decodeURIComponent(/oauth_state=([^;]*)/.exec(res.headers.get('set-cookie') ?? '')?.[1] ?? '')
-    const [state, verifier, nonce, ...rest] = cookie.split('|')
-    const params = new URL(res.headers.get('location')!).searchParams
-    expect(params.get('state')).toBe(state)
-    expect(params.get('nonce')).toBe(nonce)
-    expect(verifier).toBeTruthy()
-    expect(rest.join('|')).toBe('/pricing?a=1|2')
+  it('成年声明后 start 把 OAuth 上下文存在服务端，cookie 只携带随机令牌', async () => {
+    const res = await app.request('/api/auth/google/start', {
+      method: 'POST', headers: { origin: 'https://site.example', 'content-type': 'application/json' },
+      body: JSON.stringify({ adultConfirmed: true, redirect: '/pricing?a=1|2' }),
+    }, env)
+    expect(res.status).toBe(200)
+    const { url } = await res.json() as { url: string }
+    const cookie = res.headers.get('set-cookie') ?? ''
+    const params = new URL(url).searchParams
+    const flow = db.prepare('SELECT * FROM adult_oauth_flows').get()!
+    expect(flow.oauth_state).toBe(params.get('state'))
+    expect(flow.nonce).toBe(params.get('nonce'))
+    expect(flow.verifier).toBeTruthy()
+    expect(flow.redirect_path).toBe('/pricing?a=1|2')
+    expect(cookie).toMatch(/adult_oauth=[A-Za-z0-9_-]{43}/)
+    expect(cookie).toContain('HttpOnly')
+    expect(cookie).toContain('SameSite=Lax')
+    expect(cookie).not.toContain(String(flow.verifier))
+    expect(cookie).not.toContain('/pricing')
   })
 
   it('回调缺 verifier（旧版 cookie）时按登录过期处理，不去换 token', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch')
     const res = await app.request('/api/auth/google/callback?state=s&code=c', { headers: { cookie: 'oauth_state=s|/dashboard' } }, env)
-    expect(res.headers.get('location')).toBe('/sign-in?error=oauth_state')
+    expect(res.headers.get('location')).toContain('/sign-in?error=adult_declaration_expired')
     expect(fetch).not.toHaveBeenCalled()
   })
 })
 
-describe('One Tap nonce', () => {
-  it('nonce 接口把同一个值写进只发往登录接口的 cookie，且不缓存', async () => {
-    const res = await app.request('/api/auth/google/nonce', {}, env)
-    const { nonce } = (await res.json()) as { nonce: string }
-    const cookie = res.headers.get('set-cookie') ?? ''
-    expect(cookie).toContain(`g_nonce=${nonce}`)
-    expect(cookie).toContain('Path=/api/auth/google')
-    expect(cookie).toContain('HttpOnly')
-    expect(res.headers.get('cache-control')).toBe('no-store')
-  })
-
-  it('credential 的 nonce 和 cookie 对不上（或没有 cookie）时拒绝，不会建账号', async () => {
-    mockGoogle()
-    const credential = await idToken({ nonce: 'n-1' })
-    const post = (cookie?: string) =>
-      app.request(
-        '/api/auth/google/one-tap',
-        {
-          method: 'POST',
-          headers: { origin: 'https://site.example', 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
-          body: JSON.stringify({ credential }),
-        },
-        { ...env, AUTH_LIMITER: { limit: async () => ({ success: true }) } } as unknown as Env,
-      )
-    for (const res of [await post(), await post('g_nonce=n-2')]) {
-      expect(res.status).toBe(401)
-      expect(((await res.json()) as { error: string }).error).toBe('oauth_state')
-    }
+describe('One Tap 已关闭', () => {
+  it('nonce 与 credential 接口均拒绝，不能绕过成年声明', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch')
+    const get = await app.request('/api/auth/google/nonce', {}, env)
+    expect(get.status).toBe(404)
+    const post = await app.request('/api/auth/google/one-tap', {
+      method: 'POST', headers: { origin: 'https://site.example', 'content-type': 'application/json' },
+      body: JSON.stringify({ credential: 'old-one-tap-token', adultConfirmed: true }),
+    }, env)
+    expect(post.status).toBe(404)
+    expect(fetch).not.toHaveBeenCalled()
+    expect(db.prepare('SELECT COUNT(*) AS n FROM users').get()).toEqual({ n: 0 })
   })
 })

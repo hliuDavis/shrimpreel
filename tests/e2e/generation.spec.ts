@@ -131,30 +131,17 @@ test('风格：不带 styleId 用默认风格，不存在的风格返回 400 inv
 test.describe('多风格站点', () => {
   test.skip(STYLES.length < 2, '站点只有一种风格')
 
-  test('首页切换 hero 标签与生成器同步，选第二个风格生成，记录里是所选风格；?style= 可预选', async ({ page }) => {
+  test('精简首页不显示风格选择，旧 style 深链接仍选择对应模板生成', async ({ page }) => {
     const second = STYLES[1]!
     await devLogin(page.request, uniqueEmail('style-ui'))
     await buyPackage(page.request, 'starter')
 
-    // SSR 默认显示默认风格；点第二个标签后素材和生成器的选中项一起切换
-    await page.goto('/')
-    await page.waitForLoadState('networkidle') // 等水合完成再点，否则点击落在还没绑事件的 SSR 按钮上
-    await expect(page.getByRole('tablist')).toBeVisible()
-    await expect(page.getByTestId(`hero-tab-${defaultStyle.id}`)).toHaveAttribute('aria-selected', 'true')
-    await expect(page.getByTestId(`style-${defaultStyle.id}`)).toHaveAttribute('aria-checked', 'true')
-    await page.getByTestId(`hero-tab-${second.id}`).click()
-    await expect(page.getByTestId(`hero-tab-${second.id}`)).toHaveAttribute('aria-selected', 'true')
-    await expect(page.getByTestId(`style-${second.id}`)).toHaveAttribute('aria-checked', 'true')
-    await expect(page.locator(`[role="tabpanel"] video[src="${second.examples.original.video}"]`)).toHaveCount(1)
-    // “Made with”每个风格各一行，不依赖 JS
-    for (const style of STYLES) await expect(page.getByTestId(`made-with-${style.id}`)).toBeVisible()
-
-    // 键盘：方向键在标签间移动并选中
-    await page.getByTestId(`hero-tab-${second.id}`).focus()
-    await page.keyboard.press('ArrowLeft')
-    await expect(page.getByTestId(`hero-tab-${STYLES[0]!.id}`)).toHaveAttribute('aria-selected', 'true')
-
-    await page.getByTestId(`style-${second.id}`).click()
+    // 隐藏选择器不删除已配置模板；保留外部 style 深链接。
+    await page.goto('/?style=' + second.id)
+    await expect(page.getByTestId('nav-credits')).toBeVisible()
+    await expect(page.getByRole('tablist')).toHaveCount(0)
+    await expect(page.getByTestId('style-' + second.id)).toHaveCount(0)
+    await expect(page.locator('.public-example video').first()).toHaveAttribute('src', second.examples.original.video)
     await page.getByTestId('photo-input').setInputFiles(PHOTO)
     await page.getByTestId('duration-short').click()
     await page.getByTestId('consent').check()
@@ -166,9 +153,9 @@ test.describe('多风格站点', () => {
 
     // ?style= 预选；无效的 id 忽略
     await page.goto(`/?style=${second.id}`)
-    await expect(page.getByTestId(`style-${second.id}`)).toHaveAttribute('aria-checked', 'true')
+    await expect(page.locator('.public-example video').first()).toHaveAttribute('src', second.examples.original.video)
     await page.goto('/?style=no-such-style')
-    await expect(page.getByTestId(`style-${defaultStyle.id}`)).toHaveAttribute('aria-checked', 'true')
+    await expect(page.locator('.public-example video').first()).toHaveAttribute('src', defaultStyle.examples.original.video)
     expect(site.styles.length).toBeGreaterThan(1)
   })
 })

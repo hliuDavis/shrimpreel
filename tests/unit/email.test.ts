@@ -53,7 +53,7 @@ describe('renderEmail', () => {
     expect(mail.replyTo).toBe('visitor@example.test')
 
     const receipt = renderEmail('takedown_received', { reportId: 'tdr_1', dueAt: '2026-10-22T00:00:00.000Z' }, { siteUrl: SITE_URL, locale: 'en' })
-    expect(receipt.replyTo).toBe(site.supportEmail)
+    expect(receipt.replyTo).toBe(site.supportEmail || undefined)
   })
 
   it('Subject 去掉换行，防止邮件头注入', () => {
@@ -177,7 +177,7 @@ describe('attemptDelivery', () => {
     const result = await attemptDelivery(row(), cfg, NOW)
     expect(result).toEqual({ status: 'sent', subject: `60 credits added to your ${site.brandName} account`, messageId: 'msg-123' })
     expect(cfg.mailer.send).toHaveBeenCalledWith(
-      expect.objectContaining({ from: cfg.from, to: 'buyer@example.test', replyTo: site.supportEmail, subject: result.subject }),
+      expect.objectContaining({ from: cfg.from, to: 'buyer@example.test', subject: result.subject, ...(site.supportEmail ? { replyTo: site.supportEmail } : {}) }),
     )
   })
 

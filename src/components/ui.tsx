@@ -19,7 +19,7 @@ export function LogoMark({ className = 'size-9 text-sm' }: { className?: string 
   return (
     <span
       aria-hidden
-      className={`grid shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,var(--accent),#7b2cbf_55%,var(--accent-2))] font-bold tracking-tight text-white shadow-sm ${className}`}
+      className={`brand-mark grid shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,var(--accent),#7b2cbf_55%,var(--accent-2))] font-bold tracking-tight text-white shadow-sm ${className}`}
     >
       {site.logoMark}
     </span>

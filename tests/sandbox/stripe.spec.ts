@@ -119,6 +119,7 @@ test.describe.serial('Stripe sandbox', () => {
   })
 
   test('订阅：月付走真实收银台，invoice.paid 建订阅并发当月积分；取消续费和撤销同步到 Stripe，门户地址可打开，最后取消续费', async ({ page }) => {
+    test.skip(!site.subscriptionsEnabled, '本站不销售订阅')
     test.skip(!WEBHOOK, '订阅首付和状态都靠 webhook 同步，需要 SANDBOX_WEBHOOK=1')
     await devLogin(page.request, uniqueEmail('sandbox-stripe-sub'))
     const before = await credits(page.request)

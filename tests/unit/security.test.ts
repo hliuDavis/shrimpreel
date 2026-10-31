@@ -38,14 +38,13 @@ describe('safeRedirectPath', () => {
   })
 })
 
-// 回调按 oauth_state cookie 里存的地址 302，入口就要把站外地址换掉
+// 旧 GET 入口只回声明页，redirect 同样必须保持站内。
 describe('GET /api/auth/google/start', () => {
   async function storedRedirect(redirect: string) {
     const google = env({ GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'client-secret' })
     const res = await app.request(`/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`, {}, google)
     expect(res.status).toBe(302)
-    const cookie = /oauth_state=([^;]*)/.exec(res.headers.get('set-cookie') ?? '')?.[1] ?? ''
-    return decodeURIComponent(cookie).split('|').slice(3).join('|')
+    return new URL(res.headers.get('location')!, 'https://site.example').searchParams.get('redirect')
   }
 
   it('站外 redirect 存成 /dashboard，站内地址原样保留', async () => {

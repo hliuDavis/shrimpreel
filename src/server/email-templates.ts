@@ -25,7 +25,7 @@ export interface RenderedEmail {
   subject: string
   text: string
   html: string
-  replyTo: string
+  replyTo?: string
 }
 
 type Block = {
@@ -308,22 +308,25 @@ export function renderEmail<K extends EmailTemplate>(template: K, params: Templa
   const paragraphs = block.paragraphs.filter(Boolean)
   // Subject 只由固定文案和系统生成的 id 组成；仍去掉换行，防止邮件头注入
   const subject = block.subject.replace(/[\r\n]+/g, ' ').slice(0, 200)
+  const contactUrl = link(ctx, '/contact')
   const text = [
     block.heading,
     '',
     ...paragraphs.flatMap((p) => [p, '']),
     ...(block.cta ? [`${block.cta.label}: ${block.cta.url}`, ''] : []),
     ...(block.footer ? [block.footer, ''] : []),
-    `— ${brand} · ${site.supportEmail}`,
+    '— ' + brand + ' · ' + (site.supportEmail || contactUrl),
   ].join('\n')
-  return { subject, text, html: layout(block, paragraphs), replyTo: block.replyTo ?? site.supportEmail }
+  return { subject, text, html: layout(block, paragraphs, ctx), replyTo: block.replyTo || site.supportEmail || undefined }
 }
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!)
 }
 
-function layout(block: Block, paragraphs: string[]) {
+function layout(block: Block, paragraphs: string[], ctx: Ctx) {
+  const supportUrl = site.supportEmail ? 'mailto:' + site.supportEmail : link(ctx, '/contact')
+  const supportLabel = site.supportEmail || (ctx.locale === 'en' ? 'Contact support' : '联系客服')
   const p = (value: string) =>
     `<p style="margin:0 0 14px;font-size:15px;line-height:24px;color:#27272a;white-space:pre-wrap">${escapeHtml(value)}</p>`
   const cta = block.cta
@@ -338,6 +341,6 @@ function layout(block: Block, paragraphs: string[]) {
 <h1 style="margin:0 0 16px;font-size:21px;line-height:28px;color:#18181b">${escapeHtml(block.heading)}</h1>
 ${paragraphs.map(p).join('\n')}${cta}
 </div>
-<div style="padding:18px 6px 0;font-size:12px;line-height:18px;color:#71717a">${footer}<p style="margin:0">${escapeHtml(brand)} · <a href="mailto:${escapeHtml(site.supportEmail)}" style="color:#71717a">${escapeHtml(site.supportEmail)}</a></p></div>
+<div style="padding:18px 6px 0;font-size:12px;line-height:18px;color:#71717a">${footer}<p style="margin:0">${escapeHtml(brand)} · <a href="${escapeHtml(supportUrl)}" style="color:#71717a">${escapeHtml(supportLabel)}</a></p></div>
 </div></body></html>`
 }

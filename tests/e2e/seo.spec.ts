@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { ARTICLES, LOCALE_META, articlePath, site } from '../../src/config/site'
+import { ARTICLES, articlePath, site } from '../../src/config/site'
 // 与 npm run seo:check 共用同一套规则
 import { runSeoCheck } from '../../scripts/seo-check.mjs'
 import { ORIGIN, content } from './helpers'
@@ -44,8 +44,9 @@ test('中英文首页水合无报错，H1/标题与 SSR 一致', async ({ page }
     await expect(page.locator('h1')).toHaveCount(1)
     await expect(page.locator('h1')).toHaveText(content.hero.title)
     await expect(page).toHaveTitle(content.meta.homeTitle)
-    await expect(page.getByRole('heading', { level: 2, name: content.howTo.title })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: content.whatIs.title })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: content.publicLayout.exampleTitle })).toBeVisible()
+    await expect(page.locator('#how-it-works')).toHaveCount(0)
+    await expect(page.locator('.public-guide-faq')).toHaveCount(0)
   }
   await testInfo.attach('home-zh', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
   expect(problems).toEqual([])
@@ -58,7 +59,11 @@ test('客户端路由切换后 head 同步更新（canonical 不残留上一页�
 
   // 首页 → 文章：走 SPA 导航（不整页刷新）
   await page.evaluate(() => ((window as unknown as { __spaMarker: boolean }).__spaMarker = true))
-  await page.getByRole('link', { name: en.whatIs.guide }).click()
+  await page.getByRole('banner').getByRole('link', { name: en.publicLayout.guide, exact: true }).click()
+  const guide = await headSnapshot(page)
+  expect(guide.jsonLd).toContain('FAQPage')
+  await page.locator('.public-more-guides summary').click()
+  await page.locator('.public-more-guides').getByRole('link').filter({ hasText: en.articles.trend.title }).click()
   await expect(page).toHaveURL(new RegExp(`${articlePath('trend')}$`))
   await expect(page).toHaveTitle(`${en.articles.trend.title} | ${site.brandName}`)
   const article = await headSnapshot(page)
@@ -75,30 +80,20 @@ test('客户端路由切换后 head 同步更新（canonical 不残留上一页�
   const home = await headSnapshot(page)
   expect(home.canonicalCount).toBe(1)
   expect(home.canonical).toBe(origin)
-  expect(home.jsonLd).toEqual(expect.arrayContaining(['Organization', 'WebSite', 'SoftwareApplication', 'FAQPage']))
+  expect(home.jsonLd).toEqual(expect.arrayContaining(['Organization', 'WebSite', 'SoftwareApplication']))
   expect(home.jsonLd).not.toContain('Article')
+  expect(home.jsonLd).not.toContain('FAQPage')
   await testInfo.attach('head-after-spa', { body: JSON.stringify({ article, home }, null, 2), contentType: 'application/json' })
 })
 
-test('语言链接：SSR 中可抓取，点击后保留路径、查询参数和 hash', async ({ page, request }) => {
+test('英文导航无语言切换，既有中文深链接和 hreflang 保留', async ({ page, request }) => {
   const path = articlePath('howTo')
-  // 不执行 JS 的 HTML 里就有指向另一语言同一页面的链接
-  const html = await (await request.get(`${path}?ref=e2e`)).text()
-  // HTML 属性名不区分大小写，React 输出的是 hrefLang
-  expect(html).toMatch(new RegExp(`<a href="/zh${path}\\?ref=e2e" hreflang="zh"`, 'i'))
-
-  await page.goto(`${path}?ref=e2e#step-2`)
+  const html = await (await request.get(path)).text()
+  expect(html.toLowerCase()).toContain('hreflang="zh"')
+  await page.goto('/')
   await expect(page.getByTestId('nav-sign-in')).toBeVisible()
-
-  // 顶部下拉：Esc 关闭
-  const header = page.getByRole('banner')
-  await header.getByRole('button', { name: en.nav.language }).click()
-  await expect(header.getByRole('link', { name: LOCALE_META.zh.name })).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(header.getByRole('link', { name: LOCALE_META.zh.name })).toHaveCount(0)
-
-  await page.getByRole('contentinfo').getByRole('navigation', { name: en.nav.language }).getByRole('link', { name: LOCALE_META.zh.name }).click()
-  await expect(page).toHaveURL(new RegExp(`/zh${path}\\?ref=e2e#step-2$`))
+  await expect(page.getByRole('banner').getByRole('button', { name: en.nav.language })).toHaveCount(0)
+  await page.goto('/zh' + path + '?ref=e2e#step-2')
   await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
   await expect(page.locator('h1')).toHaveText(zh.articles.howTo.title)
 })

@@ -47,7 +47,7 @@ export interface Mailer {
     subject: string
     text: string
     html: string
-    replyTo: string
+    replyTo?: string
   }): Promise<{ messageId: string }>
 }
 
@@ -94,7 +94,7 @@ export async function attemptDelivery(
       subject: rendered.subject,
       text: rendered.text,
       html: rendered.html,
-      replyTo: rendered.replyTo,
+      ...(rendered.replyTo ? { replyTo: rendered.replyTo } : {}),
     })
     return { status: 'sent', subject: rendered.subject, messageId: result.messageId }
   } catch (error) {

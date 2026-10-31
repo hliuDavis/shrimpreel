@@ -5,6 +5,7 @@ import { defaultStyle, findDuration, findPackage, findPlan, findStyle, isLocale,
 import { safeRedirectPath } from '#/lib/redirect'
 import { exportFileName, exportUserData } from './account-export'
 import { adminRoutes } from './admin'
+import { adultDeclaration, adultFlowCookie, ADULT_FLOW_TTL_SECONDS, beginAdultFlow, consumeAdultFlow } from './adult-declaration'
 import { runHealthCheck } from './alerts'
 import { backupDatabase } from './backup'
 import { classifyTouch, deviceFromUserAgent, requestAttribution, sanitizeTouch } from './attribution'
@@ -12,7 +13,7 @@ import { deletedEmailHash, endSession, loadSessionUser, publicUser, startSession
 import { CLIENT_ERROR_PATH, summarizeClientError } from './client-error'
 import { clawbackStatements, expireStatements, ledgerStatements } from './credits'
 import { CSP_REPORT_PATH, summarizeCspReports } from './csp'
-import { exchangeGoogleCode, googleAuthRedirect, googleClientId, googleOAuthConfig, verifyGoogleIdToken } from './google'
+import { exchangeGoogleCode, googleAuthRedirect, googleClientId, googleOAuthConfig } from './google'
 import { publicGeneration, publicOrder, rateLimit, readJson, requireUser, pageParams } from './http'
 import { enqueueJob, failGeneration, handleDeadLetter, handleVideoJob } from './jobs'
 import { jobToken, serveR2Object, sniffImageType, verifyUploadSignature } from './media'
@@ -44,7 +45,7 @@ import {
 import { createTakedown, isBlockedMedia, parseTakedown, type TakedownInput } from './takedown'
 import { turnstileSiteKey, verifyTurnstile } from './turnstile'
 import type { AppContext, GenerationRow, OrderRow, UploadRow, UserRow } from './types'
-import { ApiError, constantTimeEqual, createId, isCheckConstraintError, isProduction, nowIso, randomToken, sha256Hex } from './util'
+import { ApiError, constantTimeEqual, createId, isCheckConstraintError, isProduction, nowIso, sha256Hex } from './util'
 import { activeVideoProviderId } from './video'
 
 const MAX_ACTIVE_JOBS_PER_USER = 3
@@ -125,37 +126,49 @@ app.get('/api/me', async (c) => {
 
 // ---------- Auth ----------
 
-const ONE_TAP_NONCE_COOKIE = 'g_nonce'
+// 所有入口先到声明页。GET 不创建 OAuth 流程，也不接受查询参数中的声明。
+app.get('/api/auth/google/start', (c) => {
+  const redirect = safeRedirectPath(c.req.query('redirect'), '/dashboard')
+  const signIn = redirect === '/zh' || redirect.startsWith('/zh/') ? '/zh/sign-in' : '/sign-in'
+  return c.redirect(signIn + '?redirect=' + encodeURIComponent(redirect))
+})
 
-app.get('/api/auth/google/start', async (c) => {
+app.post('/api/auth/google/start', async (c) => {
   await rateLimit(c.env.AUTH_LIMITER, c.req.header('cf-connecting-ip') ?? 'local')
+  const body = await readJson<{ adultConfirmed: unknown; redirect: string }>(c)
+  const declaration = adultDeclaration(body.adultConfirmed)
+  const redirect = safeRedirectPath(typeof body.redirect === 'string' ? body.redirect : undefined, '/dashboard')
   const config = googleOAuthConfig(c.env, new URL(c.req.url).origin)
   if (!config) throw new ApiError(503, 'google_not_configured')
   const { url, state, verifier, nonce } = await googleAuthRedirect(config)
-  // 回跳地址放最后：它可能含 |
-  setCookie(c, 'oauth_state', `${state}|${verifier}|${nonce}|${safeRedirectPath(c.req.query('redirect'), '/dashboard')}`, {
+  const token = await beginAdultFlow(c.env.DB, declaration, { state, verifier, nonce, redirect })
+  setCookie(c, adultFlowCookie(isProduction(c.env)), token, {
     httpOnly: true,
     secure: isProduction(c.env),
     sameSite: 'Lax',
-    path: '/api/auth/google',
-    maxAge: 600,
+    path: '/',
+    maxAge: ADULT_FLOW_TTL_SECONDS,
   })
-  return c.redirect(url)
+  c.header('Cache-Control', 'no-store')
+  return c.json({ url: url.toString() })
 })
 
 app.get('/api/auth/google/callback', async (c) => {
-  const [expectedState, verifier, nonce, ...rest] = (getCookie(c, 'oauth_state') ?? '').split('|')
-  const redirectTo = rest.join('|')
+  const cookieName = adultFlowCookie(isProduction(c.env))
+  const token = getCookie(c, cookieName)
+  deleteCookie(c, cookieName, { path: '/', secure: isProduction(c.env) })
+  // 清理升级前的登录 cookie；旧 cookie 不能作为成年声明凭证。
   deleteCookie(c, 'oauth_state', { path: '/api/auth/google' })
-  const state = c.req.query('state') ?? ''
-  const code = c.req.query('code')
-  if (!expectedState || !verifier || !nonce || !code || !constantTimeEqual(state, expectedState)) {
-    return c.redirect('/sign-in?error=oauth_state')
-  }
-  const config = googleOAuthConfig(c.env, new URL(c.req.url).origin)
-  if (!config) throw new ApiError(503, 'google_not_configured')
+  c.header('Cache-Control', 'no-store')
+  let redirectTo = '/dashboard'
   try {
-    const profile = await exchangeGoogleCode(code, config, { verifier, nonce })
+    const flow = await consumeAdultFlow(c.env.DB, token, c.req.query('state') ?? '')
+    redirectTo = flow.redirect
+    const code = c.req.query('code')
+    if (!code) throw new ApiError(400, 'oauth_state')
+    const config = googleOAuthConfig(c.env, new URL(c.req.url).origin)
+    if (!config) throw new ApiError(503, 'google_not_configured')
+    const profile = await exchangeGoogleCode(code, config, { verifier: flow.verifier, nonce: flow.nonce })
     const user = await upsertUser(c.env, {
       email: profile.email,
       name: profile.name,
@@ -163,6 +176,7 @@ app.get('/api/auth/google/callback', async (c) => {
       googleSub: profile.sub,
       country: c.req.header('cf-ipcountry') ?? null,
       locale: null,
+      adultDeclaration: flow.declaration,
       attribution: requestAttribution(c, 'first'),
       referral: await requestReferral(c),
     })
@@ -170,59 +184,28 @@ app.get('/api/auth/google/callback', async (c) => {
   } catch (error) {
     const code = error instanceof ApiError ? error.code : 'oauth_failed'
     if (!(error instanceof ApiError)) console.error(error)
-    return c.redirect(`/sign-in?error=${code}`)
+    const signIn = redirectTo === '/zh' || redirectTo.startsWith('/zh/') ? '/zh/sign-in' : '/sign-in'
+    return c.redirect(signIn + '?error=' + encodeURIComponent(code) + '&redirect=' + encodeURIComponent(safeRedirectPath(redirectTo, '/dashboard')))
   }
   return c.redirect(safeRedirectPath(redirectTo, '/dashboard'))
 })
 
-// One Tap 初始化前先取 nonce：同一个值存进只发往登录接口的 cookie，Google 签进 id_token，提交时两者必须一致
-app.get('/api/auth/google/nonce', (c) => {
-  if (!googleClientId(c.env)) throw new ApiError(503, 'google_not_configured')
-  const nonce = randomToken(18)
-  setCookie(c, ONE_TAP_NONCE_COOKIE, nonce, {
-    httpOnly: true,
-    secure: isProduction(c.env),
-    sameSite: 'Strict',
-    path: '/api/auth/google',
-    maxAge: 600,
-  })
-  c.header('Cache-Control', 'no-store')
-  return c.json({ nonce })
-})
-
-app.post('/api/auth/google/one-tap', async (c) => {
-  await rateLimit(c.env.AUTH_LIMITER, c.req.header('cf-connecting-ip') ?? 'local')
-  const clientId = googleClientId(c.env)
-  if (!clientId) throw new ApiError(503, 'google_not_configured')
-  const { credential } = await readJson<{ credential: string }>(c)
-  if (!credential) throw new ApiError(400, 'missing_credential')
-  const nonce = getCookie(c, ONE_TAP_NONCE_COOKIE) ?? ''
-  deleteCookie(c, ONE_TAP_NONCE_COOKIE, { path: '/api/auth/google', secure: isProduction(c.env) })
-  const profile = await verifyGoogleIdToken(credential, clientId, nonce)
-  const user = await upsertUser(c.env, {
-    email: profile.email,
-    name: profile.name,
-    picture: profile.picture,
-    googleSub: profile.sub,
-    country: c.req.header('cf-ipcountry') ?? null,
-    locale: null,
-    attribution: requestAttribution(c, 'first'),
-    referral: await requestReferral(c),
-  })
-  await startSession(c, user.id)
-  return c.json({ user: publicUser(user) })
-})
+// 关闭自动 One Tap；旧前端和直接请求同样不能绕过成年声明。
+app.get('/api/auth/google/nonce', () => { throw new ApiError(404, 'not_found') })
+app.post('/api/auth/google/one-tap', () => { throw new ApiError(404, 'not_found') })
 
 // 本地快捷登录（e2e 依赖它）；生产环境或经隧道/公网访问时 404
 app.post('/api/auth/dev-login', async (c) => {
   if (!isLocalDevRequest(c)) throw new ApiError(404, 'not_found')
-  const { email, name } = await readJson<{ email: string; name: string }>(c)
+  const { email, name, adultConfirmed } = await readJson<{ email: string; name: string; adultConfirmed: unknown }>(c)
+  const declaration = adultDeclaration(adultConfirmed)
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new ApiError(400, 'invalid_email')
   const user = await upsertUser(c.env, {
     email,
     name: name ?? email.split('@')[0] ?? null,
     picture: null,
     googleSub: null,
+    adultDeclaration: declaration,
     country: null,
     locale: null,
     attribution: requestAttribution(c, 'first'),
@@ -882,7 +865,7 @@ app.delete('/api/account', async (c) => {
     }),
     db
       .prepare(
-        `UPDATE users SET email = ?, name = NULL, avatar_url = NULL, google_sub = NULL, status = 'deleted' WHERE id = ?`,
+        `UPDATE users SET email = ?, name = NULL, avatar_url = NULL, google_sub = NULL, adult_declared_at = NULL, adult_declaration_version = NULL, status = 'deleted' WHERE id = ?`,
       )
       .bind(`deleted+${user.id}@deleted.invalid`, user.id),
     db

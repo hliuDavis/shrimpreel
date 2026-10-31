@@ -28,7 +28,7 @@ export async function json<T>(response: APIResponse | Promise<APIResponse>, stat
 
 export async function devLogin(request: APIRequestContext, email: string) {
   const data = await json<{ user: { id: string; email: string; credits: number; role: string } }>(
-    post(request, '/api/auth/dev-login', { email }),
+    post(request, '/api/auth/dev-login', { email, adultConfirmed: true }),
   )
   return data.user
 }

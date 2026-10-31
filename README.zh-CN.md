@@ -23,7 +23,7 @@ https://github.com/user-attachments/assets/895aab94-d0c9-474e-8d90-61a6c551e536
 - 支付：Waffo Pancake（默认）、Dodo Payments，均为 MoR；也可用 Stripe（你自己是商户，销售税自己处理）；`mock` 仅用于本地和 e2e
 - 视频：fal.ai queue API（默认），可选 [yir.ai](https://yir.ai/?ref=qianshuixia) 网关或 [NanoAPI](https://nanoapi.ai)；`mock` 仅用于本地和 e2e。见下文“视频服务商”
 - 已具备：
-  - 用户与积分：Google 登录（含 One Tap）、积分包、月付和年付订阅、积分流水、个人中心（视频/账单/设置/兑换码/邀请链接/注销/导出我的数据）；账单显示实付与退款，订单和积分流水可分页加载，每笔订单有可打印的详情页（税务发票由支付商出具）
+  - 用户与积分：Google 登录（登录前成年声明，One Tap 已关闭）、积分包、月付和年付订阅、积分流水、个人中心（视频/账单/设置/兑换码/邀请链接/注销/导出我的数据）；账单显示实付与退款，订单和积分流水可分页加载，每笔订单有可打印的详情页（税务发票由支付商出具）
   - 订单与生成：订单与部分/全额退款回收、生成任务队列（含死信队列）与失败退积分
   - 增长与运营：来源归因（UTM 与广告点击 ID，首次和最近触达）、访问 → 注册 → 下单 → 支付 → 生成漏斗、GA4 事件（带同意横幅）、成片公开分享页（用户自己开启，带链接预览图）
   - 管理后台：概览（含服务商成本与毛利）、用户、订单、生成、举报下架、留言、支付事件、邮件、审计、经营报表与订单 CSV、兑换码、邀请排行、运营设置与测试连接
@@ -285,7 +285,7 @@ SMOKE_BASE_URL=https://video-template-staging.<子域名>.workers.dev SMOKE_EXPE
 - **安全**：非 GET 的 `/api/*`（webhook、CSP 报告和前端错误上报除外）要求 `Origin` 与站点同源；上传按文件头校验真实类型；上传和生成按用户限流；封禁用户会立即使会话失效；管理操作写入 `admin_audit`。
   - 登录后的 `redirect`（登录页和 Google 回调）只接受站内路径：`src/lib/redirect.ts` 拒绝反斜杠、控制字符，以及规范化后以 `//` 开头的地址，所以 `/sign-in?redirect=/\evil.com` 这类链接会落到个人中心。
   - 5xx 错误只对管理员返回 `message`；其他人只拿到错误码，详情以 `[api] <method> <path> <code>: <message>` 写入 Workers Logs。
-  - Google 登录：授权码流程带 PKCE（S256）和 nonce；One Tap 初始化前先从 `/api/auth/google/nonce` 取 nonce（同时写进 cookie），提交时两者必须一致。
+  - Google 登录：授权码流程保留 PKCE（S256）和 nonce；登录前需声明已满 18 岁且达到所在地成年年龄。One Tap 与旧 nonce 接口已关闭。
   - 账号以 Google 的 `sub` 为准：同一邮箱换了 Google 账号（`sub` 不同）会被拒绝登录，登录页提示联系客服（`account_conflict`）；dev 登录建的账号（没有 `sub`）在第一次 Google 登录时绑定。
   - 注销账号只保留邮箱的加盐哈希（`deleted_accounts` 表，盐是 `SESSION_SECRET`），同一邮箱重新注册时不发注册赠送、不绑定邀请人。更换 `SESSION_SECRET` 后旧记录对不上。
   - 上传请求必须带 `Content-Length`（否则 411），超过上限直接 413，不读请求体。服务商成片超过 100 MB 判失败并退积分；带长度时流式写入 R2，没带长度时边读边计数，超过 48 MB 即停止。
@@ -442,3 +442,54 @@ tests/                  unit（单元）、e2e（mock 服务商）、smoke（部
 ## 许可证
 
 [MIT](LICENSE)
+
+## 静态界面样稿
+
+新版 Create / Guide / Pricing / My Account 布局见 [demo/README.md](demo/README.md)。包含仅英文的 8 种页面状态，可直接用浏览器打开 HTML，无须启动本地服务器。静态稿供样式评审；对应布局现已迁移到应用代码，尚未部署。
+
+## 精简公开页面布局（应用代码）
+
+应用的 Create 首页只保留创作与示例，Guide 集中使用步骤、热词介绍、Side by side 对比和问答；Pricing 只展示一次性积分包。导航为 Create / Guide / Pricing，登录后增加 My Account，不显示语言切换。样式仅作用于这三个公开页面，个人中心的 Videos / Billing / Settings 与后台布局沿用原实现。
+
+这是展示层迁移：上传、生成、进度查询、下载、Google 登录、积分扣退、支付回调及数据库未改。风格选择入口隐藏，默认使用站点默认模板，原有 style 查询参数仍有效。当前站点已关闭新订阅销售；模板仍保留历史订阅的续费、取消和退款处理。既有中文 URL 和 hreflang 保留兼容，但导航不再提供语言切换。
+
+FAQ 结构化数据随可见问答移到 Guide；原教程文章保留在 Guide 的“更多指南”中。新增文案在 src/content/en.ts、zh.ts 的 publicLayout 下，派生新站时应按热词重写介绍。demo 继续作为独立静态参考稿。
+
+当前电脑的依赖安装不完整，补装又被网络权限 EACCES 拒绝。发布前须在可安装依赖的环境完成 typecheck、单元测试、seed:local、test:e2e、build 和 seo:check。代码修改不会自动发布到 Cloudflare。
+
+### 轻快专业配色（应用代码）
+
+已将 demo 的暖白、珊瑚、浅杏主题同步到用户页面，示例区采用淡紫辅助色，指南步骤辅以薄荷色。主题通过 customer-site 限定于用户端，后台不受影响；个人中心仅换色、不改布局。已补充同色系深色变量，保留用户原有主题偏好。此轮不修改登录、生成、支付或积分行为。
+
+浅色和深色各 6 组主要文字／按钮配色通过 4.5:1 对比度检查。当前电脑缺少 tsc、vitest、playwright、vite 可执行依赖，完整类型检查、测试与构建仍受阻；未执行远端部署。
+
+
+## 成年自我声明（0016 迁移）
+
+- 登录页增加默认不勾选的成年声明；Google 和本地开发登录均须明确提交布尔 true。所有登录按钮先到声明页，旧 GET /api/auth/google/start 只重定向回声明页。
+- POST /api/auth/google/start 经同源校验后创建 10 分钟 OAuth 流程。生产 cookie 使用 __Host 前缀、Secure、HttpOnly、SameSite=Lax；只存随机令牌，数据库保存其哈希及本次 state、PKCE 和声明。
+- 回调在访问 Google 和创建账号之前原子消费声明记录。没有凭证、过期、state 不匹配、旧版本及重复回调都不能完成登录。采用 D1 DELETE ... RETURNING，避免 KV 最终一致下的重复消费。
+- 用户表记录最近一次 adult_declared_at / adult_declaration_version，不保存生日或证件。个人数据导出包含声明记录，注销账号时清空记录；过期临时流程由 Cron 和新登录开始时清理。
+- 这是自我声明，不是真实年龄核验或完整合规证明。不会追溯补造旧账号声明，也不会强制退出已有会话；旧用户下一次登录需要勾选。
+- 自动 Google One Tap 不再加载；旧 /api/auth/google/nonce 和 /api/auth/google/one-tap 返回 404。
+
+升级时先应用数据库迁移：本地执行 npm run db:migrate:local；线上发布前执行 npm run db:migrate:remote。迁移 0016 增加用户声明字段和短期 OAuth 表，不修改既有积分与订单。
+
+本机已通过使用真实源函数和 SQLite 的 23 项针对性检查（包括严格布尔值、state 绑定、过期、并发单次消费、用户写入及旧账号补确认）。该检查未覆盖 HTTP cookie 和 Google 真实登录；完整测试仍需依赖齐全的环境运行。
+
+
+## 当前售卖方式与法律页草稿
+
+当前站点尚未正式营业，仅销售一次性积分包：subscriptionsEnabled=false，新月付／年付下单会被接口拒绝，条款、退款政策与 FAQ 不再展示订阅销售段落。保留历史订阅处理代码用于模板兼容，不创建或取消任何外部支付商品。
+
+法律文案统一在 src/content/legal.ts，站点公开披露字段位于 src/config/site.ts 的 legal 中。主体名称、国家／地区、依法需要的业务联系地址和实际服务商资料均留空，不编造，不要求在聊天中提供；你可以自行在本机填写。客服可使用真实可收信的业务邮箱。字段或业务邮箱未齐时，法律页显示上线前草稿提示；对应 TODO(site) 会阻止默认生产部署流程。补齐字段不等于法律审查完成，不能仅删除 TODO 来假装合规。
+
+退款区分失败退积分、商业退款与法定救济，14 天未使用退款条件不排除法定权利；删除固定到账时间保证。条款的成年要求与注册声明一致。举报按类别展示不同善意声明，换类别后需重新勾选；48 小时表述限定于适用法律要求的有效请求。
+
+隐私说明不再承诺注销后立即清空所有记录，也不替上游作不训练保证。短期 adult_oauth_flows 只备份表结构，避免令牌和 PKCE 内容留在 30 天备份中。非必要归因 Cookie 的同意机制、上游保留与跨境安排、客服及下架值守仍是上线前待办，不能仅靠文案解决。
+
+### 联系表单与邮箱
+
+公开 supportEmail 当前留空；页面、结构化数据和邮件页脚不再显示占位邮箱，改用 Contact 页面。表单提交会先保存至 contact_messages，后台 /admin/messages 可查看。系统可向 ADMIN_EMAILS 发送新留言提醒，但必须已配置真实管理员收件地址、可用 EMAIL_FROM 和发信服务。本地仅模拟发信。
+
+后台当前提供查看、mailto 联系留言人和标记处理，没有站内回复编辑器。只看后台留言不必配置提醒收件邮箱；需要邮件提醒时可自行填写私人接收地址到后端 ADMIN_EMAILS，不会因此公开在网页。正式业务的公开客服渠道／支付审核要求仍需另行满足，不能将空邮箱当作已完成合规。

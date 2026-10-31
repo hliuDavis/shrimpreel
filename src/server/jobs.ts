@@ -1,3 +1,4 @@
+import { clearExpiredAdultFlows } from './adult-declaration'
 import { findDuration, findStyle } from '#/config/site'
 import { jobToken, signedUploadUrl, templateSourceUrl } from './media'
 import { expireStatements, generationRefundStatements } from './credits'
@@ -270,6 +271,7 @@ export async function failGeneration(env: Env, generationId: string, code: strin
 
 // 每 5 分钟：补投丢失的队列消息、超时任务失败退款、作废到期积分、年付订阅按月补发、pending 订单向支付商查单、清理过期会话和长期未支付订单、按保留期删除媒体
 export async function runScheduledMaintenance(env: Env) {
+  await clearExpiredAdultFlows(env.DB)
   const db = env.DB
   const staleBefore = new Date(Date.now() - 5 * 60_000).toISOString()
   const timeoutBefore = new Date(Date.now() - JOB_TIMEOUT_MINUTES * 60_000).toISOString()

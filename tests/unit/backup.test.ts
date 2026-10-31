@@ -1,5 +1,7 @@
+import { DatabaseSync } from 'node:sqlite'
+import { d1Shim, migrate } from './d1-sqlite'
 import { describe, expect, it } from 'vitest'
-import { backupKey, sqlLiteral } from '#/server/backup'
+import { backupKey, sqlLiteral, dumpDatabase } from '#/server/backup'
 
 // 导出、导入的完整往返在本地 D1 上验证（见 README“数据备份”），这里只覆盖字面量转义的边界
 describe('sqlLiteral', () => {
@@ -23,4 +25,16 @@ describe('sqlLiteral', () => {
     expect(backupKey('2026-10-21')).toBe('backups/d1/2026-10-21.sql.gz')
     expect(backupKey('2026-09-30') < backupKey('2026-10-01')).toBe(true)
   })
+})
+
+it('备份保留 OAuth 流程表结构但不复制短期令牌或 PKCE 数据', async () => {
+  const db = new DatabaseSync(':memory:')
+  try {
+    migrate(db)
+    db.prepare('INSERT INTO adult_oauth_flows VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run('hash-secret', 'state-secret', 'verifier-secret', 'nonce-secret', '/dashboard', '2026-10-31', 'v1', '2026-11-01')
+    const result = await dumpDatabase(d1Shim(db) as unknown as D1Database)
+    expect(result.sql).toContain('CREATE TABLE adult_oauth_flows')
+    expect(result.sql).not.toContain('verifier-secret')
+    expect(result.sql).not.toContain('hash-secret')
+  } finally { db.close() }
 })

@@ -5,7 +5,8 @@ import { useCheckout } from '#/lib/checkout'
 import { useContent } from '#/lib/i18n'
 import { ErrorText, Spinner } from './ui'
 
-export function Pricing() {
+// 只隐藏公开价格页的订阅展示，不更改在售商品、旧订阅或后端接口。
+export function Pricing({ showSubscriptions = true }: { showSubscriptions?: boolean } = {}) {
   const c = useContent()
   const p = c.pricing
   const { buy, pending, error, checkoutPaused, paused, loading } = useCheckout()
@@ -44,7 +45,7 @@ export function Pricing() {
           {p.pausedNote}
         </p>
       ) : null}
-      {sellingPlans.length ? (
+      {showSubscriptions && sellingPlans.length ? (
         <>
           <div className="mx-auto max-w-2xl text-center">
             <h3 className="font-display text-2xl">{p.plansTitle}</h3>

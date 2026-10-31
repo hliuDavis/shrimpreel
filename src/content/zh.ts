@@ -1,3 +1,4 @@
+import { legalContent } from './legal.ts'
 // 简体中文文案，结构必须与 en.ts 一致（由 Content 类型约束）
 import type { site as Site } from '#/config/site'
 import type { Content } from './en'
@@ -17,8 +18,30 @@ export function zh(s: S): Content {
   const { uploadDays, outputDays } = s.retention
   const photoRetention = uploadDays > 0 ? `在上传 ${uploadDays} 天后自动删除` : '保留到你主动删除为止'
   const videoRetention = outputDays > 0 ? `在完成 ${outputDays} 天后自动删除` : '保留到你主动删除为止'
-  const { ga4Id, cfBeaconToken, umamiWebsiteId } = s.analytics
   return {
+    publicLayout: {
+      create: '开始创作',
+      guide: '指南',
+      account: '个人中心',
+      createEyebrow: '照片生成视频',
+      exampleTitle: '看看生成效果',
+      exampleNote: '示例仅供参考，实际生成效果可能不同。',
+      guideEyebrow: '快速上手',
+      guideTitle: '几步上手，开始创作。',
+      guideIntro: '从照片要求到下载作品，一页了解完整流程。',
+      guideMeta: '了解 ' + k + ' AI 视频的照片要求、生成步骤、积分消耗与常见问题。',
+      aboutEyebrow: '关于模板',
+      aboutTitle: '什么是 ' + k + '？',
+      aboutParagraphs: [
+        k + ' 是本站展示的视频模板。通过参考视频和你的照片，生成个性化动作视频。',
+        '选择清晰的单人照片和视频时长，由参考视频引导动作。完成后即可预览和下载作品。',
+      ],
+      priceEyebrow: '按需购买',
+      priceTitle: '按需购买，自由创作。',
+      priceIntro: '选择一次性积分包，每次确认生成前会展示积分消耗。',
+      priceMeta: '查看 ' + k + ' AI 视频的一次性积分包价格与积分数量。购买积分不过期，失败任务退回积分。',
+      moreGuides: '更多指南',
+    },
     styles,
     meta: {
       homeTitle: `${k} AI 视频生成器：一张照片生成同款视频`,
@@ -233,7 +256,7 @@ export function zh(s: S): Content {
           ? [{ q: '怎么取消订阅？', a: '进入“我的账户 → 账单”，点击“取消续费”。之后不会再扣款，当期结束前套餐和积分仍可正常使用。' }]
           : []),
         { q: '可以用别人的照片吗？', a: '必须获得本人许可，且禁止使用未成年人、明星或公众人物的照片。违规账号将被关闭。' },
-        { q: '我的照片会怎么处理？', a: `上传内容私密保存，只用于生成你的视频，并${photoRetention}；成片${videoRetention}。注销账号会立即删除全部内容。` },
+        { q: '我的照片会怎么处理？', a: `上传内容私密保存，只用于生成你的视频，并${photoRetention}；成片${videoRetention}。注销账号会删除媒体，必要记录和限期备份可能继续保留。` },
       ],
     },
     finalCta: {
@@ -262,6 +285,8 @@ export function zh(s: S): Content {
       settings: 'Cookie 设置',
     },
     signIn: {
+      adultDeclaration: '我确认自己已满 18 岁，并已达到所在地的法定成年年龄。',
+      adultDeclarationNote: '我们记录声明时间和版本，不收集出生日期。这是自我声明，不是真实年龄核验。',
       title: `登录 ${b}`,
       body: '使用 Google 账号登录，首次登录会自动创建账号。',
       google: '使用 Google 继续',
@@ -399,7 +424,7 @@ export function zh(s: S): Content {
     },
     contact: {
       title: '联系我们',
-      body: `发送邮件至 ${s.supportEmail}，或填写下方表单。账单问题请附上订单号。`,
+      body: s.supportEmail ? '发送邮件至 ' + s.supportEmail + '，或填写下方表单。账单问题请附上订单号。' : '请使用下方表单联系我们。账单问题请附上订单号；你填写的邮箱用于接收回复。',
       email: '你的邮箱',
       topic: '主题',
       topics: { general: '一般咨询', billing: '账单', bug: '问题反馈', partnership: '商务合作' } as Record<string, string>,
@@ -410,7 +435,7 @@ export function zh(s: S): Content {
     },
     report: {
       title: '举报内容 / 申请下架',
-      body: `如果 ${b} 生成的视频未经你同意使用了你的形象、涉及未成年人、冒充他人或侵犯你的权利，请在这里告诉我们。每条举报都由人工审核，符合条件的内容会在 ${s.takedownSlaHours} 小时内下架，被下架的照片将无法再次上传。`,
+      body: '可举报涉嫌侵犯权利或违反规则的视频。适用 TAKE IT DOWN Act 时，符合该法范围的有效移除请求按要求在 48 小时内处理，并按要求移除已知相同副本。其他举报将尽快审查。拦截采用文件哈希，无法识别所有修改版本。',
       name: '你的全名（作为电子签名）',
       email: '联系邮箱',
       contentRef: '内容在哪里？',
@@ -425,6 +450,7 @@ export function zh(s: S): Content {
       } as Record<string, string>,
       details: '补充说明（可选）',
       isDepicted: '我是视频中的本人，或已获得本人授权代为举报。',
+      attestGeneral: '我善意认为被举报内容违反本举报所述权利或规则，所提供信息真实准确。',
       attest: '我善意地相信该内容是在未经当事人同意的情况下制作或传播的，并保证本举报中的信息真实准确。',
       submit: '提交举报',
       sent: (id: string) => `已收到举报，编号 ${id}。如需补充信息，我们会通过上面的邮箱联系你。`,
@@ -451,7 +477,7 @@ export function zh(s: S): Content {
       notFoundTitle: '页面不存在',
       notFoundBody: '你访问的页面不存在或已被移动。',
       errorTitle: '出错了',
-      errorBody: `请重试。如果问题持续出现，请发邮件至 ${s.supportEmail}。`,
+      errorBody: s.supportEmail ? '请重试。如果问题持续出现，请发送邮件至 ' + s.supportEmail + '。' : '请重试。如果问题持续出现，请通过联系页面反馈。',
       errorRef: (id: string) => `错误编号：${id}（联系我们时请附上）`,
       signInRequired: '请先登录。',
       lastUpdated: '最后更新',
@@ -468,6 +494,8 @@ export function zh(s: S): Content {
       related: '相关指南',
     },
     errors: {
+      adult_declaration_required: '请先确认你已满足年龄要求，再继续登录。',
+      adult_declaration_expired: '本次声明已过期或失效，请重新确认并登录。',
       unauthorized: '请先登录。',
       insufficient_credits: '积分不足以生成该时长。',
       invalid_code: '兑换码无效或已过期。',
@@ -499,7 +527,7 @@ export function zh(s: S): Content {
       captcha_required: '请先完成人机验证。',
       captcha_failed: '人机验证未通过，请重试。',
       captcha_unavailable: '验证服务暂不可用，请重试。',
-      captcha_not_configured: `验证暂不可用，请改为发送邮件至 ${s.supportEmail}。`,
+      captcha_not_configured: s.supportEmail ? '验证暂不可用，请发送邮件至 ' + s.supportEmail + '。' : '验证暂不可用，请稍后重试。',
       media_expired: '该视频已过期并被删除。',
       subscription_exists: '你已有生效中的订阅，可在“我的账户 → 账单”管理。',
       subscription_active: '注销账号前，请先在“账单”页取消订阅续费。',
@@ -512,92 +540,10 @@ export function zh(s: S): Content {
       invalid_report: '请填写所有必填项并勾选声明。',
       not_found: '没有找到对应内容，可能不属于当前账号。',
       internal_error: '发生意外错误，请重试。',
-      account_disabled: `该账号已被停用。如有疑问，请发邮件至 ${s.supportEmail}。`,
-      account_conflict: `这个邮箱已绑定另一个 Google 账号。请用那个账号登录，或发邮件至 ${s.supportEmail} 联系我们。`,
+      account_disabled: s.supportEmail ? '该账号已停用。如有疑问，请发送邮件至 ' + s.supportEmail + '。' : '该账号已停用。如有疑问，请通过联系页面反馈。',
+      account_conflict: s.supportEmail ? '此邮箱已绑定其他 Google 账号，请使用原账号登录或发送邮件至 ' + s.supportEmail + '。' : '此邮箱已绑定其他 Google 账号。请使用原账号登录，或通过联系页面寻求帮助。',
     } as Record<string, string>,
-    legal: {
-      updated: '2026-10-21',
-      privacy: {
-        title: '隐私政策',
-        sections: [
-          { h: '我们收集哪些信息', p: [`登录时，我们从 Google 获取你的姓名、邮箱和头像。制作视频时，我们保存你上传的照片和生成的视频。支付信息由支付合作方处理，${b} 不会接触你的卡号。`] },
-          { h: '我们如何使用', p: ['照片仅用于生成你请求的视频。邮箱用于账户运营、发送收据和服务通知（例如视频生成完成、你提交的举报已处理）以及回复客服请求。我们不发送营销邮件。我们不出售个人数据，也不会用你的照片训练模型。'] },
-          { h: '存储与保留', p: [`文件加密存储在我们的基础设施服务商处。上传的照片${photoRetention}，生成的视频${videoRetention}；你也可以提前删除它们或注销账号。订单与支付记录按税务和财务要求保留。注销账号后，我们只保留邮箱地址的单向哈希，用于防止同一邮箱重复领取注册赠送。`] },
-          { h: '安全检查', p: ['照片在使用前可能经过自动内容安全分类器检查，结果只用于执行内容规则，不作他用。公开表单使用防机器人服务保护，该服务可能处理你的 IP 地址和浏览器信号。'] },
-          {
-            h: 'Cookie 与统计',
-            p: [
-              '网站使用少量运行所必需的 Cookie 和浏览器存储，例如登录会话、你选择的浅色或深色主题。',
-              '我们还会写入一个第一方 Cookie（vt_attr，保留 90 天），记录你第一次和最近一次是从哪里来到本站的，例如来源网站或推广链接。它只用于了解哪些渠道带来了注册和购买，不会提供给广告网络。' +
-                (ga4Id ? '它只在你于横幅中接受统计 Cookie 后写入，撤回同意时一并删除。' : ''),
-              s.referralRewardCredits > 0
-                ? '如果你打开了好友的邀请链接，我们会写入一个 Cookie（vt_ref，最多保留 30 天，注册后即删除），用于记录这次邀请。为防止滥用邀请奖励，邀请记录里保存的是你的 IP 地址加盐后的哈希值，不保存 IP 地址本身。邀请双方都看不到对方的账户信息。'
-                : '',
-              ga4Id || cfBeaconToken || umamiWebsiteId ? '' : '我们不使用第三方统计或广告 Cookie。',
-              cfBeaconToken ? '我们用 Cloudflare Web Analytics 统计页面浏览量，它不使用 Cookie，也不会跨网站追踪你。' : '',
-              umamiWebsiteId
-                ? '我们用 Umami 统计访问量，它从我们自己的域名加载，不写入 Cookie，也不保存你的 IP 地址；IP 地址只用于判断你所在的国家和统计独立访客。'
-                : '',
-              ga4Id
-                ? '如果你在横幅中接受统计 Cookie，我们还会使用 Google Analytics。它会写入 Cookie（例如 _ga），并由 Google 处理你的 IP 地址和设备信息，为我们生成使用情况报告。在你点击“接受”之前不会加载 Google Analytics。你可以随时在页脚“Cookie 设置”中撤回同意，撤回时这些 Cookie 也会被删除。'
-                : '',
-            ].filter(Boolean),
-          },
-          ...(s.share.enabled
-            ? [
-                {
-                  h: '分享的视频',
-                  p: [
-                    '分享视频后，拿到链接的人都能观看。分享页不显示你的名字和邮箱，并要求搜索引擎不要收录。为了生成链接预览图，你的浏览器会从视频中截取一帧，我们把它和视频一起保存。停止分享或删除视频后链接失效、预览图随之删除；视频到期或因举报下架后，链接同样失效。',
-                  ],
-                },
-              ]
-            : []),
-          { h: '服务提供方', p: [`我们只使用少量数据处理方：云托管、存储与邮件发送、仅为你的请求处理照片的 AI 渲染服务、内容安全分类服务，以及作为记录商户（Merchant of Record）的支付服务${ga4Id || cfBeaconToken || umamiWebsiteId ? '；另有上文所述的统计服务' : ''}。`] },
-          { h: '你的权利', p: [`你可以随时下载或删除视频，也可以在“设置”中导出个人数据（JSON）或注销账号。其他隐私请求请发送邮件至 ${s.supportEmail}。`] },
-        ],
-      },
-      terms: {
-        title: '服务条款',
-        sections: [
-          { h: '使用服务', p: [`${b} 让你通过一张照片制作 AI 短视频。你必须年满 18 周岁（或所在地法定成年年龄）才能使用。`] },
-          { h: '内容与授权', p: ['只能上传你本人或已获得许可的成年人的照片。禁止上传未成年人、明星或公众人物的照片，禁止利用本服务骚扰、冒充或欺骗他人。我们有权删除违规内容并关闭相关账号。'] },
-          { h: '生成的视频', p: ['你可以将生成的视频用于个人和社交媒体用途。AI 输出可能存在瑕疵，分享前请先检查。视频带有“AI 生成”标识：分享时请保留标识并注明为 AI 生成，不得冒充真实事件的录像。'] },
-          { h: '举报与下架', p: [`任何人都可以通过举报页面提交举报。我们会在 ${s.takedownSlaHours} 小时内审核，并下架违反本条款或侵犯他人权利的内容；被下架的照片将无法再次上传。严重或多次违规的账号可能被关闭，已使用的积分不予退还。`] },
-          {
-            h: '积分与支付',
-            p: [
-              '积分包为一次性购买。积分不可兑换现金，积分包的积分在服务运营期间不会过期。支付由作为记录商户的合作方处理，其条款同样适用。',
-              subs
-                ? '订阅在每个计费周期（月或年）结束时按你订阅时的价格自动续费，直到你取消。你可以随时在账户的“账单”页取消，取消在当期结束时生效，当期结束前套餐仍然有效。订阅积分每月发放一次（年付按月分次发放），当月结束时作废，不累积到下月。'
-                : '',
-            ].filter(Boolean),
-          },
-          { h: '可用性与责任', p: ['我们尽力保证服务可用，但按“现状”提供。在法律允许的范围内，我们的责任以你在索赔前 12 个月内支付的金额为限。'] },
-          { h: '条款变更', p: ['我们可能更新本条款。更新后继续使用即表示你接受新条款。'] },
-        ],
-      },
-      refund: {
-        title: '退款政策',
-        sections: [
-          { h: '生成失败', p: ['视频生成失败时，积分会自动退回你的余额，无需任何操作。'] },
-          { h: '未使用的积分', p: [`购买后 14 天内且积分包未被使用，可申请退款。请发送邮件至 ${s.supportEmail} 并附上订单号。`] },
-          ...(subs
-            ? [
-                {
-                  h: '订阅',
-                  p: [
-                    `订阅扣款后 14 天内且这笔扣款发放的积分未被使用，可申请退款。请发送邮件至 ${s.supportEmail} 并附上账单页的订单号。退款后这笔扣款发放的积分会被收回。`,
-                    '取消订阅会停止之后的续费，当期费用不会自动退还，当期结束前套餐仍然有效。',
-                  ],
-                },
-              ]
-            : []),
-          { h: '质量问题', p: ['如果成片明显损坏（例如文件损坏或人脸缺失），请带上视频 ID 联系我们，审核后会退还对应积分。'] },
-          { h: '退款方式', p: ['审核通过的退款将经由支付合作方原路退回，到账可能需要 5–10 个工作日。'] },
-        ],
-      },
-    },
+    legal: legalContent(s, 'zh'),
     articles: {
       trend: {
         title: `${k} 热潮是什么？`,

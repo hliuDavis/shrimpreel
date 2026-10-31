@@ -13,8 +13,8 @@ export const BACKUP_PREFIX = 'backups/d1/'
 export const BACKUP_RETENTION_DAYS = 30
 // 每天最多尝试几次：失败后下一次 Cron 重试，避免持续失败时每 5 分钟都跑一遍全表导出
 const MAX_ATTEMPTS_PER_DAY = 3
-// 只导结构不导数据的表：会话 token 哈希没有恢复价值，留在备份里只会增加泄露面
-const SCHEMA_ONLY = new Set(['sessions'])
+// 只导结构不导数据的表：会话与短期 OAuth 流程不恢复登录能力，不能将其令牌及 PKCE 上下文复制进长期备份
+const SCHEMA_ONLY = new Set(['sessions', 'adult_oauth_flows'])
 
 type SqlValue = string | number | null | ArrayBuffer | number[]
 

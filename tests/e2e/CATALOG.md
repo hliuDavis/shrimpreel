@@ -61,7 +61,7 @@ e2e 跑在本地 dev server 上，支付、视频、审核服务商都是 mock�
   - 3 路并发 mock-finish 只落库一次，成片保留；mock 成本为 0，失败任务的成本为 NULL；后台显示毛利。
 - `generation.spec.ts` › `风格：不带 styleId 用默认风格，不存在的风格返回 400 invalid_style 且不扣积分`
   - 不存在的 styleId 返回 `invalid_style`，余额不变、没有任务；不带 styleId 时 `templateId` 是默认风格，扣 short 档积分。
-- `generation.spec.ts` › `首页切换 hero 标签与生成器同步，选第二个风格生成，记录里是所选风格；?style= 可预选`
+- `generation.spec.ts` › `精简首页不显示风格选择，旧 style 深链接仍选择对应模板生成`
   - 只在 `site.styles` 多于一个时运行（模板默认一个，会跳过）：hero 标签与生成器选中项同步，方向键切标签，“Made with”每个风格一行；所选风格写入 `templateId`；`?style=` 预选，无效 id 回到默认风格。
 - `alerts.spec.ts` › `死信：任务判失败并只退一次积分；健康检查告警，同一时间桶重复执行不重发`
   - 死信消费者重复处理同一条消息（或和轮询并发）时，积分只退一次。
@@ -95,7 +95,7 @@ e2e 跑在本地 dev server 上，支付、视频、审核服务商都是 mock�
 
 ### 订阅
 
-- `subscriptions.spec.ts` › `月付：定价页订阅、积分当月作废、续费新建订单、扣款失败与恢复、到期取消与撤销、终止后可重新订阅`
+- `subscriptions.spec.ts` › `月付：保留接口订阅、积分当月作废、续费新建订单、扣款失败与恢复、到期取消与撤销、终止后可重新订阅`
   - 定价页显示订阅套餐和年付折扣；首付入账订阅的每月积分，`/api/credits/expiring` 的到期时间等于当期结束。
   - 已有订阅时再下单返回 409 `subscription_exists`，还会续费时注销返回 409 `subscription_active`。
   - 续费每期新建一张订单、同一订阅号；同一事件重放返回 duplicate；金额不符返回 mismatch 不入账。
@@ -212,7 +212,7 @@ e2e 跑在本地 dev server 上，支付、视频、审核服务商都是 mock�
 - `seo.spec.ts` › `SSR 输出满足 seo-check 全部 error 级规则`
 - `seo.spec.ts` › `中英文首页水合无报错，H1/标题与 SSR 一致`
 - `seo.spec.ts` › `客户端路由切换后 head 同步更新（canonical 不残留上一页）`
-- `seo.spec.ts` › `语言链接：SSR 中可抓取，点击后保留路径、查询参数和 hash`
+- `seo.spec.ts` › `英文导航无语言切换，既有中文深链接和 hreflang 保留`
 
 ## P1 运营与数据管理
 
@@ -303,3 +303,21 @@ e2e 跑在本地 dev server 上，支付、视频、审核服务商都是 mock�
 | 付款即时通知的真实发送 | 需要真实的 Telegram、飞书或 Discord webhook | `chat-notify.test.ts` 按各平台文档构造请求 | 热词站配置 webhook 后付一单测试款 |
 | 移动端视口、Firefox 和 Safari | 只跑 Desktop Chrome，控制运行时间 | 无 | 按需加 project |
 | 线上真实域名巡检 | 模板不部署 | smoke 巡检已在本地生产模式跑通 | 第一个热词站上线后执行 |
+
+## P1 精简公开页布局
+
+- `layout.spec.ts` › `公开页精简布局：导航随登录变化、生成入口与积分包保留、Guide 两栏对齐`
+  - 未登录不显示 My Account，登录后显示并进入原个人中心；首页保留照片、时长和生成入口。
+  - 价格页显示积分包、不显示订阅卡片；Guide 比较与问答右栏对齐，问答可以展开，手机无横向溢出。
+
+## P0 成年声明与认证
+
+- `adult-declaration.spec.ts` › `成年声明：默认不勾选、后端拒绝跳过，勾选后注册并导出声明记录`
+- `adult-declaration.spec.ts` › `成年声明：旧 OAuth 入口、过期回调和 One Tap 都不能绕过`
+  - 声明须为布尔 true，OAuth 开始和回调均受服务端检查；关闭 One Tap；只记录声明时间和版本。
+
+## P0 法律页与售卖模式一致性
+
+- `legal.spec.ts` › `积分包模式：拒绝新订阅订单，法律页无订阅段落并标注资料未齐的草稿`
+- `legal.spec.ts` › `举报声明按类型显示，改变类型后必须重新确认`
+  - 不把关闭订阅或更新文案当成法律合规认证；上线仍需真实经营信息、服务商条款及适用法律审查。

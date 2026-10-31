@@ -82,3 +82,10 @@
 3. 运行 `npm run cf:types`，重新生成 `worker-configuration.d.ts`。没写进 `.dev.vars` 的可选 secret，在 `src/env.d.ts` 里手动补上类型。
 4. 在 `src/server/config-health.ts` 里加上线检查规则，在 `tests/unit/config-health.test.ts` 里加用例。
 5. 更新本文件。
+
+
+## 法律页公开配置（可自行本地填写）
+
+site.legal.updatedAt 是法律文案日期；operatorName、country、contactAddress 是依法需要的经营主体披露；providerDetails 应列明实际服务商、角色、处理地区及相关数据安排。空值不自动补成品牌名或虚构公司，页面标明草稿。supportEmail 应使用实际有人处理的业务邮箱，不必使用私人邮箱。TODO(site) 未解决时默认生产部署检查会失败。
+
+这些字段属于计划公开的法律披露，不应填写身份证号、银行账号等无关敏感信息。处理依据、跨境规则及是否须公开某项信息，应按实际业务和适用要求确认。

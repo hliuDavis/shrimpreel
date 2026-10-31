@@ -1,3 +1,4 @@
+import { legalContent } from './legal.ts'
 // 英文文案。所有关键词/品牌通过 site 配置插值，上新词时通常只需改 site.ts；
 // 文章与 FAQ 建议按新趋势重写，保证内容原创、贴合关键词。
 import type { ArticleKey, site as Site } from '#/config/site'
@@ -20,12 +21,34 @@ export function en(s: S) {
   const { uploadDays, outputDays } = s.retention
   const photoRetention = uploadDays > 0 ? `deleted automatically ${uploadDays} days after upload` : 'kept until you delete them'
   const videoRetention = outputDays > 0 ? `kept for ${outputDays} days after they finish` : 'kept until you delete them'
-  const { ga4Id, cfBeaconToken, umamiWebsiteId } = s.analytics
   // 每种风格的展示名和一句话介绍；site.styles 加风格时这里补一项（缺了 typecheck 报错），zh.ts 同
   const styles: Record<StyleId, StyleCopy> = {
     'neon-shuffle-v1': { name: k, tagline: 'The original routine, beat for beat.' },
   }
   return {
+    publicLayout: {
+      create: 'Create',
+      guide: 'Guide',
+      account: 'My Account',
+      createEyebrow: 'PHOTO TO VIDEO',
+      exampleTitle: 'See the transformation',
+      exampleNote: 'Illustrative examples. Actual results may vary.',
+      guideEyebrow: 'THE SHORT VERSION',
+      guideTitle: 'A little guidance. More possibility.',
+      guideIntro: 'Everything you need to make your first video.',
+      guideMeta: 'Photo requirements, generation steps, credits and common questions for ' + k + ' AI videos.',
+      aboutEyebrow: 'ABOUT THE TEMPLATE',
+      aboutTitle: 'What is ' + k + '?',
+      aboutParagraphs: [
+        k + ' is the video template featured on this site. It pairs a reference clip with your photo to create a personalized take on the movement.',
+        'Start with a clear photo of one person, choose a video length, and let the reference clip guide the animation. Preview and download the result when it is ready.',
+      ],
+      priceEyebrow: 'SIMPLE PRICING',
+      priceTitle: 'A little credit. A lot of creativity.',
+      priceIntro: 'Choose a one-time credit pack. The cost of each video is shown before you confirm.',
+      priceMeta: 'One-time credit packs for ' + k + ' AI videos. View prices and credits before buying. Purchased credits never expire; failed tasks return their credits.',
+      moreGuides: 'More guides',
+    },
     styles,
     meta: {
       // 首页 title 不加品牌后缀：品牌通常已含关键词，控制在 60 字符内（seo:check 会校验）
@@ -43,7 +66,7 @@ export function en(s: S) {
       termsDescription: `The rules for creating ${k} AI videos with ${b}: consent, acceptable use, credits and liability.`,
       refundDescription: `When ${b} returns credits or refunds a credit pack, and how long refunds take to arrive.`,
       reportTitle: `Report content – ${b}`,
-      reportDescription: `Report a ${b} video that shows you without consent, involves a minor or infringes your rights. We review every report within ${s.takedownSlaHours} hours.`,
+      reportDescription: `Report a ${b} video that shows you without consent, involves a minor or infringes your rights. Use the report form to request review or removal.`,
       ogImageAlt: `${b}: turn one photo into your own ${k} video`,
       breadcrumbHome: 'Home',
     },
@@ -255,7 +278,7 @@ export function en(s: S) {
           ? [{ q: 'How do I cancel my subscription?', a: 'Open My account → Billing and choose Cancel renewal. You won’t be charged again, and your plan and credits stay available until the end of the current period.' }]
           : []),
         { q: 'Can I use someone else’s photo?', a: 'Only with their permission, and never photos of minors, celebrities or public figures. Accounts that break this rule are closed.' },
-        { q: 'What happens to my photos?', a: `Uploads are private, used only to make your video and ${photoRetention}. Finished videos are ${videoRetention}. Deleting your account removes everything right away.` },
+        { q: 'What happens to my photos?', a: `Uploads are private, used only to make your video and ${photoRetention}. Finished videos are ${videoRetention}. Account deletion removes your media; required records and time-limited backups may remain.` },
       ] as FaqItem[],
     },
     finalCta: {
@@ -285,6 +308,8 @@ export function en(s: S) {
       settings: 'Cookie settings',
     },
     signIn: {
+      adultDeclaration: 'I confirm that I am at least 18 years old and have reached the age of majority where I live.',
+      adultDeclarationNote: 'We record the time and version of this declaration, not your date of birth. This is a self-declaration, not age verification.',
       title: `Sign in to ${b}`,
       body: 'Use your Google account. New here? An account is created automatically.',
       google: 'Continue with Google',
@@ -425,7 +450,7 @@ export function en(s: S) {
     },
     contact: {
       title: 'Contact us',
-      body: `Write to ${s.supportEmail} or use the form below. Include your order ID for billing questions.`,
+      body: s.supportEmail ? 'Write to ' + s.supportEmail + ' or use the form below. Include your order ID for billing questions.' : 'Use the form below to contact us. Include your order ID for billing questions. Your email lets us reply.',
       email: 'Your email',
       topic: 'Topic',
       topics: { general: 'General', billing: 'Billing', bug: 'Bug report', partnership: 'Partnership' } as Record<string, string>,
@@ -436,7 +461,7 @@ export function en(s: S) {
     },
     report: {
       title: 'Report content or request removal',
-      body: `If a video made with ${b} shows you without your consent, involves a minor, impersonates someone or infringes your rights, tell us here. A person reviews every report and qualifying content is removed within ${s.takedownSlaHours} hours. Removed photos are blocked from being uploaded again.`,
+      body: 'Report a video that may violate rights or our rules. Where the TAKE IT DOWN Act applies, valid covered removal requests are handled within the required 48 hours, including known identical copies as required. Other reports are reviewed promptly. Blocking uses file hashes and does not detect every edited copy.',
       name: 'Your full name (serves as your electronic signature)',
       email: 'Email we can reach you at',
       contentRef: 'Where is the content?',
@@ -451,6 +476,7 @@ export function en(s: S) {
       } as Record<string, string>,
       details: 'Details (optional)',
       isDepicted: 'I am the person shown, or I am authorised to act on their behalf.',
+      attestGeneral: 'I believe in good faith that the reported content violates the rights or rules described in this report, and that the information I provided is accurate.',
       attest: 'I believe in good faith that this content was made or shared without the consent of the person shown, and the information in this report is accurate.',
       submit: 'Send report',
       sent: (id: string) => `Report received. Your reference is ${id}. We may contact you at the email above if we need more information.`,
@@ -478,7 +504,7 @@ export function en(s: S) {
       notFoundTitle: 'Page not found',
       notFoundBody: 'The page you are looking for does not exist or has moved.',
       errorTitle: 'Something went wrong',
-      errorBody: `Please try again. If it keeps happening, email ${s.supportEmail}.`,
+      errorBody: s.supportEmail ? 'Please try again. If it keeps happening, email ' + s.supportEmail + '.' : 'Please try again. If the issue persists, use the Contact page.',
       errorRef: (id: string) => `Error ID: ${id} (include it when you contact us)`,
       signInRequired: 'Please sign in to continue.',
       lastUpdated: 'Last updated',
@@ -496,6 +522,8 @@ export function en(s: S) {
       related: 'Related guides',
     },
     errors: {
+      adult_declaration_required: 'Please confirm that you meet the age requirement before continuing.',
+      adult_declaration_expired: 'Your declaration has expired or is no longer valid. Please confirm it again and sign in.',
       unauthorized: 'Please sign in first.',
       insufficient_credits: 'Not enough credits for this length.',
       invalid_code: 'This code is invalid or has expired.',
@@ -527,7 +555,7 @@ export function en(s: S) {
       captcha_required: 'Please complete the verification.',
       captcha_failed: 'Verification failed. Please try again.',
       captcha_unavailable: 'The verification service is unavailable. Please try again.',
-      captcha_not_configured: `Verification is not available. Please email ${s.supportEmail} instead.`,
+      captcha_not_configured: s.supportEmail ? 'Verification is unavailable. Please email ' + s.supportEmail + '.' : 'Verification is temporarily unavailable. Please try again later.',
       media_expired: 'This video has expired and was deleted.',
       subscription_exists: 'You already have an active subscription. Manage it under My account → Billing.',
       subscription_active: 'Cancel your subscription renewal under Billing before deleting your account.',
@@ -540,92 +568,10 @@ export function en(s: S) {
       invalid_report: 'Please fill in every required field and confirm the statement.',
       not_found: 'We couldn’t find that. It may belong to a different account.',
       internal_error: 'Unexpected error. Please try again.',
-      account_disabled: `This account has been disabled. Email ${s.supportEmail} if you think this is a mistake.`,
-      account_conflict: `This email is linked to a different Google account. Sign in with that account, or email ${s.supportEmail} for help.`,
+      account_disabled: s.supportEmail ? 'This account is disabled. Email ' + s.supportEmail + ' if you think this is a mistake.' : 'This account is disabled. Use the Contact page if you think this is a mistake.',
+      account_conflict: s.supportEmail ? 'This email is linked to another Google account. Sign in with that account or email ' + s.supportEmail + '.' : 'This email is linked to another Google account. Sign in with that account or use the Contact page for help.',
     } as Record<string, string>,
-    legal: {
-      updated: '2026-10-21',
-      privacy: {
-        title: 'Privacy Policy',
-        sections: [
-          { h: 'What we collect', p: [`When you sign in we receive your name, email address and profile picture from Google. When you create a video we store the photo you upload and the video we generate. Payment details are handled by our payment partner; ${b} never sees your card number.`] },
-          { h: 'How we use it', p: ['Your photo is used only to render the video you request. We use your email to operate your account, send receipts and service notices (such as when your video is ready or a report you filed is resolved) and answer support requests. We do not send marketing email. We do not sell personal data and do not use your photos to train models.'] },
-          { h: 'Storage and retention', p: [`Files are stored with our infrastructure provider in encrypted form. Uploaded photos are ${photoRetention} and generated videos are ${videoRetention}, unless you delete them or your account sooner. Order and payment records are kept as required for tax and accounting. When you delete your account we keep only a one-way hash of your email address, so the same email cannot claim the sign-up bonus twice.`] },
-          { h: 'Safety checks', p: ['Before a photo is used it may be checked by an automated content-safety classifier. The check runs only to enforce our rules, and its result is not used for anything else. Public forms are protected by a bot-detection service that may process your IP address and browser signals.'] },
-          {
-            h: 'Cookies and analytics',
-            p: [
-              'The site uses a few cookies and similar browser storage that it needs to work, such as your sign-in session and your light or dark theme preference.',
-              'We also set a first-party cookie (vt_attr, kept for 90 days) that records how you first and most recently reached us, such as a referring website or campaign link. We use it only to see which channels lead to sign-ups and purchases, and we do not share it with advertising networks.' +
-                (ga4Id ? ' It is only set after you accept analytics cookies in the banner, and withdrawing consent deletes it.' : ''),
-              s.referralRewardCredits > 0
-                ? 'If you open a friend’s invite link, we set a cookie (vt_ref, kept for up to 30 days and removed once you sign up) so the invite can be credited. To prevent abuse of invite rewards, we store a salted hash of your IP address with the invite, not the address itself. Neither of you can see the other’s account details.'
-                : '',
-              ga4Id || cfBeaconToken || umamiWebsiteId ? '' : 'We do not use third-party analytics or advertising cookies.',
-              cfBeaconToken ? 'We count page views with Cloudflare Web Analytics, which does not use cookies or track you across websites.' : '',
-              umamiWebsiteId
-                ? 'We count visits with Umami, a cookie-free analytics tool loaded from our own domain. It does not set cookies or store your IP address; your IP address is only used to determine your country and to count unique visits.'
-                : '',
-              ga4Id
-                ? 'If you accept analytics cookies in the banner, we also use Google Analytics. It sets cookies (such as _ga) and lets Google process your IP address and device information to produce usage reports for us. Google Analytics is not loaded until you accept. You can withdraw consent at any time under “Cookie settings” in the footer, which also deletes these cookies.'
-                : '',
-            ].filter(Boolean),
-          },
-          ...(s.share.enabled
-            ? [
-                {
-                  h: 'Shared videos',
-                  p: [
-                    'If you share a video, anyone with the link can watch it. The share page does not show your name or email and asks search engines not to index it. To make link previews, your browser takes a still frame from the video and we store it with the video. Stopping sharing or deleting the video disables the link and deletes that image; the link also stops working when the video expires or is removed after a report.',
-                  ],
-                },
-              ]
-            : []),
-          { h: 'Service providers', p: [`We rely on a small number of processors: cloud hosting, storage and email delivery, an AI rendering provider that processes your photo only for your request, a content-safety classifier, a payment provider acting as merchant of record${ga4Id || cfBeaconToken || umamiWebsiteId ? ', and the analytics services described above' : ''}.`] },
-          { h: 'Your rights', p: [`You can download or delete your videos at any time. In Settings you can export a copy of your data as JSON or delete your account. For any other privacy request, email ${s.supportEmail}.`] },
-        ],
-      },
-      terms: {
-        title: 'Terms of Service',
-        sections: [
-          { h: 'Using the service', p: [`${b} lets you create short AI videos from a photo. You must be at least 18 years old, or the age of majority where you live, to use it.`] },
-          { h: 'Your content and consent', p: ['Only upload photos of yourself or of adults who have given you permission. Do not upload photos of minors, celebrities or public figures, and do not use the service to harass, impersonate or deceive anyone. We may remove content and close accounts that break these rules.'] },
-          { h: 'Generated videos', p: ['You may use the videos you create for personal and social media purposes. AI output can contain mistakes; review a video before sharing it. Videos are labelled as AI-generated: keep that label, say the video is AI-generated when you share it and never present it as real footage of an event.'] },
-          { h: 'Reports and removal', p: [`Anyone can report content through our report page. We review reports and remove content that breaks these terms or someone’s rights within ${s.takedownSlaHours} hours. Removed photos are blocked from being uploaded again, and accounts involved in serious or repeated violations may be closed without a refund of used credits.`] },
-          {
-            h: 'Credits and payments',
-            p: [
-              'Credit packs are one-time purchases. Credits have no cash value, and credits from packs do not expire while the service is operating. Payments are processed by our merchant-of-record partner, whose terms also apply.',
-              subs
-                ? 'Subscriptions renew automatically at the end of each billing period (monthly or yearly) at the price you subscribed at, until you cancel. You can cancel at any time under Billing in your account; cancellation takes effect at the end of the current period and you keep your plan until then. Subscription credits are added once a month (yearly plans receive them month by month), expire at the end of that month and do not roll over.'
-                : '',
-            ].filter(Boolean),
-          },
-          { h: 'Availability and liability', p: ['We work to keep the service available but provide it as is. To the extent permitted by law, our liability is limited to the amount you paid in the 12 months before a claim.'] },
-          { h: 'Changes', p: ['We may update these terms. Continued use after an update means you accept the new terms.'] },
-        ],
-      },
-      refund: {
-        title: 'Refund Policy',
-        sections: [
-          { h: 'Failed renders', p: ['If a video fails to render, the credits are returned to your balance automatically. No action is needed.'] },
-          { h: 'Unused credits', p: [`You can request a refund of a credit pack within 14 days of purchase if none of its credits have been used. Email ${s.supportEmail} with your order ID.`] },
-          ...(subs
-            ? [
-                {
-                  h: 'Subscriptions',
-                  p: [
-                    `You can request a refund of a subscription payment within 14 days of the charge if none of its credits have been used. Email ${s.supportEmail} with the order ID from Billing. Refunded credits are removed from your balance.`,
-                    'Canceling stops future renewals. The current period is not refunded automatically, and you keep your plan until it ends.',
-                  ],
-                },
-              ]
-            : []),
-          { h: 'Quality issues', p: ['If a finished video is clearly broken (for example corrupted or missing the face), contact us with the video ID and we will restore the credits after review.'] },
-          { h: 'How refunds are paid', p: ['Approved refunds go back to the original payment method through our payment partner and may take 5–10 business days to appear.'] },
-        ],
-      },
-    },
+    legal: legalContent(s, 'en'),
     articles: {
       trend: {
         title: `What is the ${k} trend?`,

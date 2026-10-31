@@ -1,3 +1,4 @@
+import { assertAdultDeclaration, type AdultDeclaration } from './adult-declaration'
 import type { Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { RequestAttribution } from './attribution'
@@ -70,6 +71,7 @@ export function isAdminEmail(env: Env, email: string) {
 }
 
 export interface SignInProfile {
+  adultDeclaration: AdultDeclaration
   email: string
   name: string | null
   picture: string | null
@@ -90,6 +92,7 @@ export async function deletedEmailHash(env: Env, email: string) {
 // 账号以 Google 的 sub 为准：邮箱相同但已绑定另一个 sub 时拒绝登录（Google 账号被删后同一邮箱可以注册成新账号），
 // 只有 google_sub 为空的账号（dev 登录创建的）才按邮箱绑定
 export async function upsertUser(env: Env, profile: SignInProfile): Promise<UserRow> {
+  assertAdultDeclaration(profile.adultDeclaration)
   const email = profile.email.trim().toLowerCase()
   const db = env.DB
   const existing = await db
@@ -111,9 +114,9 @@ export async function upsertUser(env: Env, profile: SignInProfile): Promise<User
     await db
       .prepare(
         `UPDATE users SET name = COALESCE(?, name), avatar_url = COALESCE(?, avatar_url),
-         google_sub = COALESCE(google_sub, ?), role = COALESCE(?, role), last_login_at = ? WHERE id = ?`,
+         google_sub = COALESCE(google_sub, ?), role = COALESCE(?, role), last_login_at = ?, adult_declared_at = ?, adult_declaration_version = ? WHERE id = ?`,
       )
-      .bind(profile.name, profile.picture, profile.googleSub, role ?? null, now, existing.id)
+      .bind(profile.name, profile.picture, profile.googleSub, role ?? null, now, profile.adultDeclaration.declaredAt, profile.adultDeclaration.version, existing.id)
       .run()
     return (await db.prepare('SELECT * FROM users WHERE id = ?').bind(existing.id).first<UserRow>())!
   }
@@ -123,8 +126,8 @@ export async function upsertUser(env: Env, profile: SignInProfile): Promise<User
     db
       .prepare(
         `INSERT INTO users (id, email, name, avatar_url, google_sub, role, status, credits, locale, country,
-         signup_source, signup_medium, signup_campaign, signup_device, attribution, created_at, last_login_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'active', 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         signup_source, signup_medium, signup_campaign, signup_device, attribution, created_at, last_login_at, adult_declared_at, adult_declaration_version)
+         VALUES (?, ?, ?, ?, ?, ?, 'active', 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         id,
@@ -142,6 +145,8 @@ export async function upsertUser(env: Env, profile: SignInProfile): Promise<User
         profile.attribution?.json ?? null,
         now,
         now,
+        profile.adultDeclaration.declaredAt,
+        profile.adultDeclaration.version,
       ),
   ]
   // 注销过的邮箱重新注册：不发注册赠送、不绑定邀请人

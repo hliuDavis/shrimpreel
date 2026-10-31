@@ -12,6 +12,7 @@ export function LegalPage({ doc }: { doc: (c: Content) => Doc }) {
       <p className="mt-3 text-sm text-muted">
         {c.common.lastUpdated}: {c.legal.updated}
       </p>
+      {c.legal.notice ? <p className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="note">{c.legal.notice}</p> : null}
       <div className="prose-article mt-8">
         {page.sections.map((section) => (
           <section key={section.h}>

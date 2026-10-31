@@ -11,9 +11,9 @@ import { pathToFileURL } from 'node:url'
 import { ARTICLES, DEFAULT_LOCALE, LOCALES, site } from '../src/config/site.ts'
 
 const REQUIRED_JSONLD = {
-  home: ['Organization', 'WebSite', 'SoftwareApplication', 'FAQPage'],
+  home: ['Organization', 'WebSite', 'SoftwareApplication'],
   article: ['Article', 'BreadcrumbList'],
-  guides: ['BreadcrumbList'],
+  guides: ['BreadcrumbList', 'FAQPage'],
 }
 // Google 结果页标题约 600px、描述约 920px；按"半角=1、全角=2"估算宽度
 const TITLE_MAX = 60
@@ -184,7 +184,7 @@ export async function runSeoCheck({ base = 'http://127.0.0.1:3000', production =
     if (kind === 'home' && !description.toLowerCase().includes(keyword)) report('warn', '首页描述不含主关键词')
     if (h1s.length !== 1) report('error', `H1 数量应为 1，实际 ${h1s.length}`, h1s.join(' | '))
     if (kind === 'home' && h1s[0] && !h1s[0].toLowerCase().includes(keyword)) report('error', '首页 H1 不含主关键词', h1s[0])
-    if (kind === 'home' && h2s.filter((h) => h.toLowerCase().includes(keyword)).length < 2) report('warn', '首页含关键词的 H2 少于 2 个', h2s.join(' | '))
+    if (kind === 'guides' && h2s.filter((h) => h.toLowerCase().includes(keyword)).length < 2) report('warn', '指南含关键词的 H2 少于 2 个', h2s.join(' | '))
     if (canonical.length !== 1) report('error', `canonical 数量应为 1，实际 ${canonical.length}`)
     else if (canonical[0] !== expectedCanonical) report('error', 'canonical 与页面 URL 不一致', `${canonical[0]} ≠ ${expectedCanonical}`)
     for (const lang of [...LOCALES, 'x-default']) {
@@ -214,12 +214,12 @@ export async function runSeoCheck({ base = 'http://127.0.0.1:3000', production =
         if (!html.includes(`/${article.slug}"`)) report('error', '文章列表页没有链接到文章', article.slug)
       }
     }
-    if (kind === 'home') {
-      if (!html.includes('/guides"')) report('warn', '首页没有链接到 /guides')
-      // 长尾词只在默认语言首页检查（其他语言的写法不同）
-      if (path === '/') {
+    if (kind === 'home' && !html.includes('/guides"')) report('warn', '首页没有链接到 /guides')
+    if (kind === 'guides') {
+      // 长尾词只在默认语言指南页检查（其他语言的写法不同）
+      if (path === '/guides') {
         for (const phrase of site.seo.secondaryKeywords) {
-          if (!text.toLowerCase().includes(phrase.toLowerCase())) report('warn', '首页正文未覆盖长尾词', phrase)
+          if (!text.toLowerCase().includes(phrase.toLowerCase())) report('warn', '指南正文未覆盖长尾词', phrase)
         }
       }
     }

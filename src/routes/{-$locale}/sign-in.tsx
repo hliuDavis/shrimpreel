@@ -32,6 +32,7 @@ function SignInPage() {
   const redirect = safeRedirectPath(search.redirect, lp('/dashboard'))
   const [email, setEmail] = useState('demo@example.com')
   const [pending, setPending] = useState(false)
+  const [adultConfirmed, setAdultConfirmed] = useState(false)
   const [error, setError] = useState<string | null>(search.error ?? null)
 
   useEffect(() => {
@@ -40,14 +41,28 @@ function SignInPage() {
 
   async function devLogin(event: FormEvent) {
     event.preventDefault()
+    if (!adultConfirmed) return setError('adult_declaration_required')
     setPending(true)
     setError(null)
     try {
-      await api('/api/auth/dev-login', { json: { email } })
+      await api('/api/auth/dev-login', { json: { email, adultConfirmed } })
       await refresh()
     } catch (err) {
       setError(errorCode(err))
     } finally {
+      setPending(false)
+    }
+  }
+
+  async function googleLogin() {
+    if (!adultConfirmed) return setError('adult_declaration_required')
+    setPending(true)
+    setError(null)
+    try {
+      const { url } = await api<{ url: string }>('/api/auth/google/start', { json: { adultConfirmed, redirect } })
+      window.location.assign(url)
+    } catch (err) {
+      setError(errorCode(err))
       setPending(false)
     }
   }
@@ -60,12 +75,24 @@ function SignInPage() {
           <h1 className="font-display text-3xl">{t.title}</h1>
           <p className="text-sm text-muted">{t.body}</p>
         </div>
+        <label className="flex items-start gap-3 text-left text-sm leading-6">
+          <input
+            type="checkbox"
+            checked={adultConfirmed}
+            onChange={(event) => setAdultConfirmed(event.target.checked)}
+            disabled={pending}
+            className="mt-1 size-4 shrink-0 accent-[var(--ink)]"
+            data-testid="adult-declaration"
+          />
+          <span>{t.adultDeclaration}</span>
+        </label>
+        <p className="text-left text-xs text-muted">{t.adultDeclarationNote}</p>
         {loading ? (
           <Spinner className="mx-auto size-5" />
         ) : config?.googleClientId ? (
-          <a href={`/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`} className="btn-primary w-full py-3.5">
-            <GoogleIcon /> {t.google}
-          </a>
+          <button type="button" onClick={googleLogin} disabled={pending || !adultConfirmed} className="btn-primary w-full py-3.5" data-testid="google-login">
+            {pending ? <Spinner /> : <GoogleIcon />} {t.google}
+          </button>
         ) : (
           <p className="text-sm text-muted">{t.notConfigured}</p>
         )}
@@ -76,7 +103,7 @@ function SignInPage() {
               <span>{t.devEmail}</span>
               <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} data-testid="dev-email" />
             </label>
-            <button type="submit" className="btn-ghost w-full" disabled={pending} data-testid="dev-login">
+            <button type="submit" className="btn-ghost w-full" disabled={pending || !adultConfirmed} data-testid="dev-login">
               {pending ? <Spinner /> : null} {t.devSubmit}
             </button>
           </form>

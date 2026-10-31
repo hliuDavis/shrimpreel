@@ -40,7 +40,7 @@ function ReportPage() {
   }, [])
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-    setForm((f) => ({ ...f, [key]: value }))
+    setForm((f) => ({ ...f, [key]: value, ...(key === 'reason' ? { attest: false } : {}) }))
   }
 
   async function submit(event: FormEvent) {
@@ -115,7 +115,7 @@ function ReportPage() {
           </label>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" name="attest" required checked={form.attest} onChange={(e) => set('attest', e.target.checked)} />
-            <span>{t.attest}</span>
+            <span>{form.reason === 'intimate' ? t.attest : t.attestGeneral}</span>
           </label>
           {siteKey ? <Turnstile siteKey={siteKey} onToken={setToken} resetKey={resetKey} /> : null}
           <ErrorText code={error} />

@@ -1,8 +1,9 @@
+import { useRouterState } from '@tanstack/react-router'
 import { LifeBuoy } from 'lucide-react'
 import { ARTICLES, site } from '#/config/site'
+import { stripLocale } from '#/lib/i18n'
 import { CONSENT_OPEN_EVENT } from '#/lib/consent'
 import { useContent } from '#/lib/i18n'
-import { LanguageLinks } from './Nav'
 import { LocalLink, LogoMark } from './ui'
 
 // 页脚只列前几篇文章，其余从 /guides 进入
@@ -10,6 +11,8 @@ const FOOTER_ARTICLES = 3
 
 export function Footer() {
   const c = useContent()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const publicView = ['/', '/guides', '/pricing'].includes(stripLocale(pathname).replace(/\/$/, '') || '/')
   const columns = [
     {
       title: c.footer.resources,
@@ -32,6 +35,23 @@ export function Footer() {
       cookieSettings: Boolean(site.analytics.ga4Id),
     },
   ]
+  if (publicView) {
+    return (
+      <footer className="public-footer">
+        <div className="container-page">
+          <span>{c.footer.rights}</span>
+          <div>
+            <LocalLink to="/contact">{c.footer.contact}</LocalLink>
+            <LocalLink to="/privacy-policy">{c.footer.privacy}</LocalLink>
+            <LocalLink to="/terms-of-service">{c.footer.terms}</LocalLink>
+            <LocalLink to="/refund-policy">{c.footer.refund}</LocalLink>
+            <LocalLink to="/report">{c.footer.report}</LocalLink>
+            {site.analytics.ga4Id ? <button type="button" onClick={() => window.dispatchEvent(new Event(CONSENT_OPEN_EVENT))}>{c.consent.settings}</button> : null}
+          </div>
+        </div>
+      </footer>
+    )
+  }
   // 页脚固定深色，与主题无关
   return (
     <footer className="bg-[#151311] text-[#f2ede4]">
@@ -42,7 +62,7 @@ export function Footer() {
             <span className="font-mono text-lg font-bold tracking-[0.12em] uppercase">{site.brandName}</span>
           </div>
           <p className="max-w-sm font-display text-lg leading-relaxed text-[#f2ede4]/80 italic">{c.footer.statement}</p>
-          <LanguageLinks />
+
         </div>
         {columns.map((column) => (
           <div key={column.title}>
@@ -74,9 +94,11 @@ export function Footer() {
       <div className="border-t border-white/10">
         <div className="container-page flex flex-col gap-2 py-6 text-xs text-[#f2ede4]/55 sm:flex-row sm:justify-between">
           <span>{c.footer.rights}</span>
-          <a href={`mailto:${site.supportEmail}`} className="hover:text-white">
-            {site.supportEmail}
-          </a>
+          {site.supportEmail ? (
+            <a href={'mailto:' + site.supportEmail} className="hover:text-white">{site.supportEmail}</a>
+          ) : (
+            <LocalLink to="/contact" className="hover:text-white">{c.footer.contact}</LocalLink>
+          )}
         </div>
       </div>
     </footer>

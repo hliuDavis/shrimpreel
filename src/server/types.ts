@@ -19,6 +19,8 @@ export interface UserRow {
   attribution: string | null // JSON：first/last touch
   created_at: string
   last_login_at: string | null
+  adult_declared_at: string | null
+  adult_declaration_version: string | null
 }
 
 export interface OrderRow {

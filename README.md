@@ -23,7 +23,7 @@ A 72-second tour, no sound ([Chinese version](README.zh-CN.md); MP4 files in [do
 - Payments: Waffo Pancake (default) or Dodo Payments, both Merchants of Record, or Stripe (you are the merchant and handle sales tax yourself). `mock` is for local dev and e2e only.
 - Video: fal.ai queue API (default) or the optional [yir.ai](https://yir.ai/?ref=qianshuixia) router or [NanoAPI](https://nanoapi.ai); `mock` for local dev and e2e. See "Video providers" below.
 - Included:
-  - Users and credits: Google sign-in (including One Tap), credit packs, monthly and yearly subscriptions and a credit ledger, dashboard (videos, billing, settings, redeem codes, invite link, account deletion, data export); billing shows amounts paid and refunded, orders and the ledger load page by page, and every order has a printable detail page (tax invoices come from the payment provider).
+  - Users and credits: Google sign-in (adult declaration required; One Tap disabled), credit packs, monthly and yearly subscriptions and a credit ledger, dashboard (videos, billing, settings, redeem codes, invite link, account deletion, data export); billing shows amounts paid and refunded, orders and the ledger load page by page, and every order has a printable detail page (tax invoices come from the payment provider).
   - Orders and generation: partial and full refunds that claw back credits, a generation queue with a dead-letter queue, credits returned automatically on failure.
   - Growth: first- and last-touch attribution (UTM and ad click IDs), a visit → sign-up → checkout → paid → generate funnel, GA4 events behind a consent banner, public share pages for videos (opt-in per video, with link previews).
   - Admin: overview (including provider cost and gross margin), users, orders, generations, takedowns, contact messages, payment events, emails, audit log, reports and order CSV, redeem codes, referral leaderboard, runtime settings and connection tests.
@@ -279,7 +279,7 @@ SMOKE_BASE_URL=https://video-template-staging.<subdomain>.workers.dev SMOKE_EXPE
 - **Security**: non-GET `/api/*` requests (except webhooks, CSP reports and browser error reports) must have an `Origin` matching the site; uploads are type-checked by magic bytes; uploads and generation are rate-limited per user; banning a user invalidates their sessions immediately; admin actions are written to `admin_audit`.
   - The `redirect` after sign-in (sign-in page and Google callback) only accepts same-site paths: `src/lib/redirect.ts` rejects backslashes, control characters and anything that normalizes to a leading `//`, so links like `/sign-in?redirect=/\evil.com` land on the dashboard.
   - For 5xx errors only admins get the `message`; everyone else gets just the error code, and the details go to Workers Logs as `[api] <method> <path> <code>: <message>`.
-  - Google sign-in: the authorization code flow uses PKCE (S256) and a nonce. Before One Tap initializes it fetches a nonce from `/api/auth/google/nonce`, which is also stored in a cookie, and the two must match when the credential is submitted.
+  - Google sign-in retains PKCE (S256) and nonce validation, with an adult self-declaration before authorization. One Tap is disabled.
   - Accounts are keyed on Google's `sub`: if the same email comes back with a different Google account (a different `sub`), sign-in is refused and the sign-in page asks the user to contact support (`account_conflict`). Accounts created by dev login (no `sub`) are bound on their first Google sign-in.
   - Deleting an account keeps only a salted hash of the email (`deleted_accounts` table, salted with `SESSION_SECRET`), so signing up again with the same email gets no sign-up bonus and no referral binding. Rotating `SESSION_SECRET` invalidates the old hashes.
   - Uploads must send `Content-Length` (otherwise 411); oversized uploads get 413 before the body is read. Provider outputs over 100 MB fail the generation and refund credits; with a length they stream straight into R2, without one the download is counted as it is read and stops at 48 MB.
@@ -442,3 +442,49 @@ tests/                  unit, e2e (mock providers), smoke (post-deploy), sandbox
 ## License
 
 [MIT](LICENSE)
+
+## Static design preview
+
+See [demo/README.md](demo/README.md) for the proposed Create / Guide / Pricing / My Account layout. Eight views are provided in English only as standalone HTML files, with no server or interactions required. These remain standalone visual references; the matching layout has now been implemented in application source but has not been deployed.
+
+## Compact public layout (application code)
+
+Create now contains the generator and examples; Guide contains instructions, the keyword introduction, side-by-side comparison, FAQ and expandable article links. Pricing displays one-time packs. Navigation shows Create / Guide / Pricing plus My Account after sign-in, without a language switcher. The public theme is scoped to those three pages; account and admin layouts retain their existing implementation.
+
+Upload, generation, polling, downloads, authentication, credits, payment processing and database code are unchanged. The style picker is hidden, but existing style deep links still select their template. Subscription cards are hidden without disabling existing subscription renewal, cancellation or refund handling. Existing Chinese routes and hreflang remain compatible. FAQ structured data moves with its visible content to Guide. New editable copy is in publicLayout in both content files.
+
+Dependency installation is currently blocked by network EACCES on this workstation. Run typecheck, unit tests, seed:local, test:e2e, build and seo:check in a dependency-ready environment before publishing. These local source changes do not deploy to Cloudflare.
+
+### Updated customer color theme
+
+The application now uses the demo's warm-white, coral and apricot palette, with lavender examples and restrained mint accents. Colors are scoped to customer-site; admin pages are unaffected and account layout is preserved. Matching dark-mode tokens retain existing theme preferences. Authentication, generation, payments and credit behavior are unchanged by this color update.
+
+Six principal text/button pairs in each color mode pass a 4.5:1 contrast check. Full typechecking, tests and builds remain blocked by missing local tsc, vitest, playwright and vite executables. No remote deployment was performed.
+
+
+## Adult self-declaration (migration 0016)
+
+Sign-in now requires an unchecked-by-default confirmation of being at least 18 and of legal majority locally. Google and local developer sign-in both require literal boolean true. All sign-in links go through this page; the legacy GET OAuth-start URL only redirects there.
+
+POST /api/auth/google/start creates a ten-minute server-side flow. Its random cookie token is hashed in D1; state, PKCE, nonce and declaration are bound together. Production uses a Secure, HttpOnly, SameSite=Lax, __Host-prefixed cookie. Callback consumption uses atomic DELETE ... RETURNING before contacting Google or creating an account, preventing expired, mismatched and replayed flows. One Tap is no longer loaded; its two endpoints return 404.
+
+Only the latest declaration timestamp and version are recorded on the user. No date of birth or ID document is collected for this step. Export includes these fields, account deletion clears them, and Cron/startup cleanup removes expired temporary flows. This is self-attestation, not verified age. Existing sessions remain active; existing users confirm at their next sign-in.
+
+Apply migration 0016 before using this code: npm run db:migrate:local locally, and npm run db:migrate:remote before deploying. Twenty-three targeted source/SQLite checks pass; HTTP-cookie, browser and live Google testing still require the complete dependency environment.
+
+
+## Pack-only sales and legal drafts
+
+This site has not launched and now sells only one-time credit packs. subscriptionsEnabled=false prevents new monthly/yearly checkout; subscription sections are removed from current legal pages and FAQ. Historical subscription handling remains for template compatibility. No external payment products were changed.
+
+Legal copy is shared in src/content/legal.ts. Public operator and provider disclosures in site.legal are intentionally blank, never fabricated. Fill them locally when ready; there is no need to send personal details in chat. A working business support email is also required. Incomplete fields display a pre-launch draft notice and TODO(site) entries block the default production deployment workflow. Filling fields or deleting TODOs does not establish legal compliance.
+
+Refund copy distinguishes credit restoration, commercial refunds and mandatory consumer rights, without guaranteeing a fixed bank processing time. Reporting attestations follow the selected category and reset when it changes. The 48-hour statement is limited to applicable valid statutory requests. Privacy text describes retained records and backups, and avoids making unverified provider training promises. Temporary adult_oauth_flows data is excluded from backups.
+
+Nonessential attribution consent, actual provider terms/transfers, operator disclosure and operational response staffing remain launch prerequisites.
+
+### Contact form and email roles
+
+supportEmail is currently empty. Public pages, structured data and email footers use the Contact page instead of a placeholder address. Form messages are saved in contact_messages and visible at /admin/messages. Notifications target ADMIN_EMAILS, provided a real recipient, EMAIL_FROM and sending service are configured. Local development only simulates delivery.
+
+The admin page supports reading, mailto links and status changes, not an in-app reply composer. Reading stored messages needs no notification inbox. ADMIN_EMAILS is backend configuration and is not displayed as the public support address. Public business-contact and payment-review requirements remain launch prerequisites.
