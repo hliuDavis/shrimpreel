@@ -217,8 +217,7 @@
 .site-nav-link { font-size: 13px; padding: 12px 0; color: var(--muted); }
 .site-nav-link[aria-current='page'] { color: var(--fg); box-shadow: 0 2px var(--fg); }
 .customer-site > header { background: var(--header-bg); }
-.public-site > header { position: relative; }
-.public-site > header > nav { min-height: 84px; }
+.customer-site > header > nav { min-height: 84px; }
 .public-site h1, .public-guide-columns h2, .public-guide-faq h2 { font-family: Georgia, 'Microsoft YaHei', serif; font-weight: 500; letter-spacing: -.6px; text-wrap: balance; }
 .public-site .btn-primary { background: var(--primary-soft); color: var(--primary-soft-fg); border-radius: 10px; }
 .public-site .btn-ghost { border-radius: 10px; }
@@ -267,9 +266,6 @@
 .public-guide-faq details:first-child { padding-top:0; }
 .public-guide-faq summary { font-size:14px; }
 .public-guide-faq details p { font-size:13px; }
-.public-more-guides { margin-bottom:40px; font-size:13px; color:var(--muted); }
-.public-more-guides > summary { cursor:pointer; padding:12px 0; }
-.public-more-guides[open] > summary { margin-bottom:20px; }
 .public-pricing { padding-bottom:56px; }
 .public-pricing .card { padding:28px; }
 .public-pricing .card.ring-2 { background:var(--featured-bg); --tw-ring-color:var(--featured-line); transform:none; }
@@ -295,7 +291,8 @@
   .public-example-note { font-size:10px; }
 }
 /* 同步 demo 的辅助色，选择、危险与成功状态仍各自清晰。 */
-.customer-site { min-height: 100vh; }
+.customer-site { min-height: 100vh; display: flex; flex-direction: column; }
+.customer-site > .site-main { flex: 1; min-width: 0; }
 .customer-site .brand-mark { background: var(--ink); color: var(--ink-fg); }
 .customer-site .card { box-shadow: 0 5px 22px -16px #6e40502b; }
 .public-site .public-example { box-shadow: none; }
@@ -311,3 +308,9 @@
 .public-steps > li:nth-child(2) .public-step-number { color: var(--step-lavender); }
 .public-steps > li:nth-child(3) .public-step-number { color: var(--step-mint); }
 .public-comparison th:nth-child(2), .public-comparison td:nth-child(2) { background: var(--upload-bg); }
+
+/* 短页面页脚落到底部；小屏为右下角客服按钮留出空间。 */
+.public-footer { flex-shrink: 0; }
+@media(max-width:600px) {
+  .public-footer > div > div { padding-right: 60px; }
+}

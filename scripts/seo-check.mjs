@@ -208,12 +208,7 @@ export async function runSeoCheck({ base = 'http://127.0.0.1:3000', production =
     const imgs = [...html.matchAll(/<img\s[^>]*>/gi)].map((m) => m[0])
     const noAlt = imgs.filter((tag) => !attr(tag, 'alt'))
     if (noAlt.length) report('warn', `${noAlt.length} 张图片缺少 alt`)
-    // 内链：/guides 是文章枢纽，必须链到每一篇；首页至少链到 /guides
-    if (kind === 'guides') {
-      for (const article of ARTICLES) {
-        if (!html.includes(`/${article.slug}"`)) report('error', '文章列表页没有链接到文章', article.slug)
-      }
-    }
+    // Guide 为使用说明页；完整文章仍由 sitemap 验证，不再要求展示文章目录。
     if (kind === 'home' && !html.includes('/guides"')) report('warn', '首页没有链接到 /guides')
     if (kind === 'guides') {
       // 长尾词只在默认语言指南页检查（其他语言的写法不同）

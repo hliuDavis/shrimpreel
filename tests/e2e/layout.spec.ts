@@ -14,6 +14,7 @@ test('公开页精简布局：导航随登录变化、生成入口与积分包�
 
   await nav.getByRole('link', { name: 'Guide', exact: true }).click()
   await expect(page.locator('.public-guide-columns')).toBeVisible()
+  await expect(page.locator('.public-more-guides')).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Questions, answered' })).toBeVisible()
   const comparison = await page.locator('.public-comparison').boundingBox()
   const questions = await page.locator('.public-guide-faq > div > div').last().boundingBox()

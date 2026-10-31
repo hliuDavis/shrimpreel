@@ -71,6 +71,8 @@ test('渲染出错时显示错误页和错误编号，编号与上报一致；�
   await page.goto('/dashboard/billing')
 
   await expect(page.getByRole('heading', { name: en.common.errorTitle })).toBeVisible()
+  await expect(page.getByTestId('site-frame')).toHaveCount(1)
+  await expect(page.getByTestId('site-footer')).toHaveClass(/public-footer/)
   const errorId = page.getByTestId('error-id')
   await expect(errorId).toHaveText(/^Error ID: [0-9a-f]{12} /)
   const shown = (await errorId.textContent())!.match(/[0-9a-f]{12}/)![0]

@@ -47,7 +47,6 @@ export function en(s: S) {
       priceTitle: 'A little credit. A lot of creativity.',
       priceIntro: 'Choose a one-time credit pack. The cost of each video is shown before you confirm.',
       priceMeta: 'One-time credit packs for ' + k + ' AI videos. View prices and credits before buying. Purchased credits never expire; failed tasks return their credits.',
-      moreGuides: 'More guides',
     },
     styles,
     meta: {

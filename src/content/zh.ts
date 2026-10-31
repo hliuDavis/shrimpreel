@@ -40,7 +40,6 @@ export function zh(s: S): Content {
       priceTitle: '按需购买，自由创作。',
       priceIntro: '选择一次性积分包，每次确认生成前会展示积分消耗。',
       priceMeta: '查看 ' + k + ' AI 视频的一次性积分包价格与积分数量。购买积分不过期，失败任务退回积分。',
-      moreGuides: '更多指南',
     },
     styles,
     meta: {

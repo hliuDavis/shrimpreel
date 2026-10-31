@@ -20,7 +20,6 @@ export function Nav() {
     { href: lp('/pricing'), label: c.nav.pricing },
     ...(user ? [{ href: lp('/dashboard'), label: c.publicLayout.account }] : []),
   ]
-  const publicView = [lp('/'), lp('/guides'), lp('/pricing')].includes(pathname)
   const activeLink = (href: string) => pathname === href || (href === lp('/dashboard') && pathname.startsWith(href + '/'))
 
   return (
@@ -35,7 +34,6 @@ export function Nav() {
           ))}
         </div>
         <div className="flex items-center gap-1.5">
-          {!publicView ? <ThemeToggle /> : null}
           <div className="hidden md:block">
             <AccountButton />
           </div>
@@ -128,6 +126,10 @@ function AccountButton() {
               {c.nav.admin}
             </a>
           ) : null}
+          <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+            <span>{c.nav.toggleTheme}</span>
+            <ThemeToggle />
+          </div>
           <button
             type="button"
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-bg-soft"

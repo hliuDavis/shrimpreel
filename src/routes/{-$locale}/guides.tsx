@@ -1,9 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Check, Minus } from 'lucide-react'
-import { ArticleCards } from '#/components/ArticleCards'
 import { Faq, faqJsonLd } from '#/components/Faq'
 import { LocalLink } from '#/components/ui'
-import { ARTICLES } from '#/config/site'
 import { getContent, localeFromParam, pageHead, useContent } from '#/lib/i18n'
 import { breadcrumbJsonLd, jsonLdScript } from '#/lib/seo'
 
@@ -60,8 +58,6 @@ function GuidesPage() {
         ) : null}
       </div>
       <section className="public-guide-faq"><Faq /></section>
-      {/* 保留旧文章入口，正文路由和收录地址不因布局调整而删除。 */}
-      <details className="public-more-guides"><summary>{c.publicLayout.moreGuides}</summary><ArticleCards articles={ARTICLES} headingLevel={2} /></details>
     </div>
   )
 }

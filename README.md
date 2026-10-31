@@ -449,7 +449,7 @@ See [demo/README.md](demo/README.md) for the proposed Create / Guide / Pricing /
 
 ## Compact public layout (application code)
 
-Create now contains the generator and examples; Guide contains instructions, the keyword introduction, side-by-side comparison, FAQ and expandable article links. Pricing displays one-time packs. Navigation shows Create / Guide / Pricing plus My Account after sign-in, without a language switcher. The public theme is scoped to those three pages; account and admin layouts retain their existing implementation.
+Create now contains the generator and examples; Guide contains instructions, the keyword introduction, side-by-side comparison, FAQ. Article routes and relevant FAQ links remain available without a More guides directory. Pricing displays one-time packs. Navigation shows Create / Guide / Pricing plus My Account after sign-in, without a language switcher. The public theme is scoped to those three pages; account and admin layouts retain their existing implementation.
 
 Upload, generation, polling, downloads, authentication, credits, payment processing and database code are unchanged. The style picker is hidden, but existing style deep links still select their template. Subscription cards are hidden without disabling existing subscription renewal, cancellation or refund handling. Existing Chinese routes and hreflang remain compatible. FAQ structured data moves with its visible content to Guide. New editable copy is in publicLayout in both content files.
 
@@ -488,3 +488,9 @@ Nonessential attribution consent, actual provider terms/transfers, operator disc
 supportEmail is currently empty. Public pages, structured data and email footers use the Contact page instead of a placeholder address. Form messages are saved in contact_messages and visible at /admin/messages. Notifications target ADMIN_EMAILS, provided a real recipient, EMAIL_FROM and sending service are configured. Local development only simulates delivery.
 
 The admin page supports reading, mailto links and status changes, not an in-app reply composer. Reading stored messages needs no notification inbox. ADMIN_EMAILS is backend configuration and is not displayed as the public support address. Public business-contact and payment-review requirements remain launch prerequisites.
+
+## Shared frame across customer pages
+
+All customer routes now share SiteFrame and the compact footer, including legal, contact/report, sign-in, articles, shares, checkout, account, 404 and error pages. Footer no longer switches to the old dark layout outside the home/guide/pricing allowlist. Account content and admin workspace layout remain intact.
+
+Navigation height is consistent, theme switching is available in the signed-in account menu, short pages keep the footer at the bottom, and mobile footer spacing accommodates the support button. No authentication, payment, generation or database behavior changed. Cross-route/theme and error-boundary regression coverage has been added.

@@ -2,8 +2,7 @@
 import { HeadContent, Outlet, Scripts, createRootRoute, useRouterState, type ErrorComponentProps } from '@tanstack/react-router'
 import { useEffect, useState, type ReactNode } from 'react'
 import { ConsentBanner } from '#/components/ConsentBanner'
-import { Footer } from '#/components/Footer'
-import { Nav } from '#/components/Nav'
+import { SiteFrame } from '#/components/SiteFrame'
 import { LocalLink } from '#/components/ui'
 import { site } from '#/config/site'
 import { ga4BootstrapScript } from '#/lib/consent'
@@ -80,16 +79,6 @@ function RootDocument({ children }: { children: ReactNode }) {
         <Scripts />
       </body>
     </html>
-  )
-}
-
-function SiteFrame({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <Nav />
-      <main className="min-h-[60vh]">{children}</main>
-      <Footer />
-    </>
   )
 }
 
